@@ -1,0 +1,8 @@
+# Editor / AI config
+.claude/
+
+# Code graph cache
+.codegraph/
+
+# nix build result symlink
+result

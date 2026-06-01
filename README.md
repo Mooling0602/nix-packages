@@ -18,7 +18,7 @@ Mooling0602's [NUR](https://github.com/nix-community/NUR) repository — maintai
 ```nix
 { pkgs, ... }: {
   nixpkgs.overlays = [ (final: prev: {
-    reasonix = (import (builtins.fetchTarball "https://github.com/Mooling0602/nix-packages/archive/main.tar.gz") { pkgs = final; }).reasonix;
+    reasonix-go = (import (builtins.fetchTarball "https://github.com/Mooling0602/nix-packages/archive/main.tar.gz") { pkgs = final; })."reasonix-go";
   }) ];
 }
 ```
@@ -27,7 +27,7 @@ Mooling0602's [NUR](https://github.com/nix-community/NUR) repository — maintai
 
 | Package | Description |
 |---------|-------------|
-| `reasonix` | DeepSeek-native AI coding agent with TUI, MCP, and Wails desktop support |
+| `reasonix-go` | DeepSeek-native AI coding agent (Go version, distinguished from npm edition) with TUI, MCP, and Wails desktop support |
 
 ## License
 

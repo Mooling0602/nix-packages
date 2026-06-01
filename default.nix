@@ -1,5 +1,5 @@
 { pkgs ? import <nixpkgs> { } }:
 
 {
-  reasonix = pkgs.callPackage ./pkgs/reasonix { };
+  reasonix-go = pkgs.callPackage ./pkgs/reasonix-go { };
 }

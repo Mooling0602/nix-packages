@@ -5,7 +5,7 @@
 }:
 
 buildGoModule rec {
-  pname = "reasonix";
+  pname = "reasonix-go";
   version = "unstable-2026-06-01";
 
   src = fetchFromGitHub {
