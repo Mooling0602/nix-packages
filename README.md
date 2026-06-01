@@ -1,6 +1,6 @@
 # nix-packages
 
-Personal [NUR](https://github.com/nix-community/NUR) repository.
+Mooling0602's [NUR](https://github.com/nix-community/NUR) repository — maintained by 木泠. May include other packages in the future.
 
 ## Usage
 
