@@ -8,7 +8,7 @@ Personal [NUR](https://github.com/nix-community/NUR) repository.
 
 ```nix
 {
-  inputs.reasonix-pkgs.url = "github:Mooling0602/nix-packages";
+  inputs.nix-packages.url = "github:Mooling0602/nix-packages";
   # ...
 }
 ```
