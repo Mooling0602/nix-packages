@@ -1,6 +1,7 @@
 { lib
 , buildGoModule
 , fetchFromGitHub
+, versionCheckHook
 }:
 
 buildGoModule rec {
@@ -25,6 +26,9 @@ buildGoModule rec {
     "-w"
     "-X main.version=${version}"
   ];
+
+  doInstallCheck = true;
+  nativeInstallCheckInputs = [ versionCheckHook ];
 
   meta = {
     description = "DeepSeek-native AI coding agent with TUI, MCP, and Wails desktop support";
