@@ -1,4 +1,4 @@
-{ pkgs ? import <nixpkgs> { } }:
+{ pkgs ? import <nixpkgs> { config.allowUnfree = true; } }:
 
 {
   reasonix-go = pkgs.callPackage ./pkgs/reasonix-go { };

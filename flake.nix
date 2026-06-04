@@ -5,9 +5,10 @@
 
   outputs = { self, nixpkgs }: let
     forAllSystems = nixpkgs.lib.genAttrs nixpkgs.lib.platforms.unix;
+    pkgsFor = system: import nixpkgs { inherit system; config.allowUnfree = true; };
   in {
-    packages = forAllSystems (system: import self { pkgs = nixpkgs.legacyPackages.${system}; });
+    packages = forAllSystems (system: import self { pkgs = pkgsFor system; });
 
-    legacyPackages = forAllSystems (system: import self { pkgs = import nixpkgs { inherit system; }; });
+    legacyPackages = forAllSystems (system: import self { pkgs = pkgsFor system; });
   };
 }
