@@ -119,7 +119,7 @@ stdenv.mkDerivation {
   postFixup = ''
     wrapProgram "$out/share/qoder/qoder" \
       --add-flags "--no-sandbox" \
-      --prefix LD_LIBRARY_PATH : "${lib.makeLibraryPath [ mesa libglvnd ]}"
+      --prefix LD_LIBRARY_PATH : "${lib.makeLibraryPath [ mesa libglvnd libsecret ]}"
   '';
 
   meta = {
