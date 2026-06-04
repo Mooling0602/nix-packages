@@ -17,14 +17,27 @@
 , libnotify
 , libsecret
 , libuuid
+, libx11
+, libxcb
+, libxcomposite
+, libxcursor
+, libxdamage
+, libxext
+, libxfixes
+, libxi
 , libxkbcommon
+, libxrandr
+, libxrender
+, libxscrnsaver
+, libxshmfence
+, libxtst
+, libxkbfile
 , mesa
 , nspr
 , nss
 , pango
 , systemd
 , wayland
-, xorg
 }:
 
 let
@@ -36,7 +49,7 @@ stdenv.mkDerivation {
 
   src = fetchurl {
     url = "https://download.qoder.com/release/${version}/qoder_amd64.deb";
-    hash = "sha256-xJVkExeDNayHtrThQQwTbhN4MTOvCHdj6ihBA0bckL8=";
+    hash = "sha256-Ls7C2g7+y6A1UISmtJbkC6KScVRhTv481558TBY/MmA=";
   };
 
   nativeBuildInputs = [
@@ -66,20 +79,20 @@ stdenv.mkDerivation {
     pango
     systemd
     wayland
-    xorg.libX11
-    xorg.libxcb
-    xorg.libXcomposite
-    xorg.libXcursor
-    xorg.libXdamage
-    xorg.libXext
-    xorg.libXfixes
-    xorg.libXi
-    xorg.libXrandr
-    xorg.libXrender
-    xorg.libXScrnSaver
-    xorg.libxshmfence
-    xorg.libXtst
-    xorg.libxkbfile
+    libx11
+    libxcb
+    libxcomposite
+    libxcursor
+    libxdamage
+    libxext
+    libxfixes
+    libxi
+    libxrandr
+    libxrender
+    libxscrnsaver
+    libxshmfence
+    libxtst
+    libxkbfile
   ];
 
   unpackPhase = ''
