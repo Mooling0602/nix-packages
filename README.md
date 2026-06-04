@@ -28,6 +28,7 @@ Mooling0602's [NUR](https://github.com/nix-community/NUR) repository — maintai
 | Package | Description |
 |---------|-------------|
 | `reasonix-go` | DeepSeek-native AI coding agent (Go version, distinguished from npm edition) with TUI, MCP, and Wails desktop support |
+| `qoder` | Alibaba's agentic AI coding platform with deep codebase awareness (unfree, x86_64-linux only) |
 
 ## License
 
