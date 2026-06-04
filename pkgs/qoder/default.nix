@@ -114,7 +114,7 @@ stdenv.mkDerivation {
     homepage = "https://qoder.com";
     license = lib.licenses.unfree;
     mainProgram = "qoder";
-    platforms = lib.platforms.x86_64-linux;
+    platforms = [ "x86_64-linux" ];
     maintainers = [ ];
   };
 }
