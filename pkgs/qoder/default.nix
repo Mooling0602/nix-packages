@@ -6,6 +6,7 @@
   makeWrapper,
   alsa-lib,
   at-spi2-atk,
+  bubblewrap,
   at-spi2-core,
   cairo,
   dbus,
@@ -62,6 +63,7 @@ stdenv.mkDerivation {
     alsa-lib
     at-spi2-atk
     at-spi2-core
+    bubblewrap
     cairo
     dbus
     expat
@@ -124,6 +126,7 @@ stdenv.mkDerivation {
     wrapProgram "$out/share/qoder/qoder" \
       --add-flags "--no-sandbox" \
       --add-flags "--password-store=gnome-libsecret" \
+      --prefix PATH : "${bubblewrap}/bin" \
       --prefix LD_LIBRARY_PATH : "${
         lib.makeLibraryPath [
           mesa
