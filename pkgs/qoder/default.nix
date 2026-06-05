@@ -1,43 +1,44 @@
-{ lib
-, stdenv
-, fetchurl
-, autoPatchelfHook
-, makeWrapper
-, alsa-lib
-, at-spi2-atk
-, at-spi2-core
-, cairo
-, dbus
-, expat
-, gdk-pixbuf
-, glib
-, gtk3
-, libdrm
-, libglvnd
-, libnotify
-, libsecret
-, libuuid
-, libx11
-, libxcb
-, libxcomposite
-, libxcursor
-, libxdamage
-, libxext
-, libxfixes
-, libxi
-, libxkbcommon
-, libxrandr
-, libxrender
-, libxscrnsaver
-, libxshmfence
-, libxtst
-, libxkbfile
-, mesa
-, nspr
-, nss
-, pango
-, systemd
-, wayland
+{
+  lib,
+  stdenv,
+  fetchurl,
+  autoPatchelfHook,
+  makeWrapper,
+  alsa-lib,
+  at-spi2-atk,
+  at-spi2-core,
+  cairo,
+  dbus,
+  expat,
+  gdk-pixbuf,
+  glib,
+  gtk3,
+  libdrm,
+  libglvnd,
+  libnotify,
+  libsecret,
+  libuuid,
+  libx11,
+  libxcb,
+  libxcomposite,
+  libxcursor,
+  libxdamage,
+  libxext,
+  libxfixes,
+  libxi,
+  libxkbcommon,
+  libxrandr,
+  libxrender,
+  libxscrnsaver,
+  libxshmfence,
+  libxtst,
+  libxkbfile,
+  mesa,
+  nspr,
+  nss,
+  pango,
+  systemd,
+  wayland,
 }:
 
 let
@@ -119,7 +120,14 @@ stdenv.mkDerivation {
   postFixup = ''
     wrapProgram "$out/share/qoder/qoder" \
       --add-flags "--no-sandbox" \
-      --prefix LD_LIBRARY_PATH : "${lib.makeLibraryPath [ mesa libglvnd libsecret ]}"
+      --add-flags "--password-store=gnome-libsecret" \
+      --prefix LD_LIBRARY_PATH : "${
+        lib.makeLibraryPath [
+          mesa
+          libglvnd
+          libsecret
+        ]
+      }"
   '';
 
   meta = {
