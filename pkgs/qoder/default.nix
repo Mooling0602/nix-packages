@@ -50,7 +50,7 @@ stdenv.mkDerivation {
 
   src = fetchurl {
     url = "https://download.qoder.com/release/${version}/qoder_amd64.deb";
-    hash = "sha256-1jga79iamm4xhbnvs6a9jfillakqcjsjimqqakisvvmfyv1nhasc";
+    hash = "sha256-TCtow/au7q3jVBjXKLVkeCpKo5NJGb3tgp3UqmI66sk=";
   };
 
   nativeBuildInputs = [
