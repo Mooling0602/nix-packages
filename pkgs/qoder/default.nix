@@ -114,6 +114,9 @@ stdenv.mkDerivation {
       echo "Error: main executable not found at $out/share/qoder/qoder" >&2
       exit 1
     fi
+    for f in "$out/share/applications/"*.desktop; do
+      substituteInPlace "$f" --replace-fail "/usr/share/qoder/qoder" "$out/bin/qoder"
+    done
     runHook postInstall
   '';
 
