@@ -45,6 +45,8 @@ stdenv.mkDerivation {
     runHook preInstall
     install -Dm755 reasonix-desktop "$out/bin/reasonix-desktop"
     runHook postInstall
+    substituteInPlace "$out/share/applications/reasonix-desktop.desktop" \
+      --replace-fail "Exec=reasonix-desktop" "Exec=$out/bin/reasonix-desktop"
   '';
 
   desktopItems = [
