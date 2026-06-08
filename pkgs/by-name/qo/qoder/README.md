@@ -6,7 +6,7 @@ Qoder IDE — 阿里巴巴推出的 Agentic AI 编程平台。闭源商业软件
 
 当前版本：1.6.0。上游有更新版本时，可以等待此处更新，或发起 Issue 通知。
 
-上游发布新版本后，更新 `default.nix` 中的 `version` 和 `hash`。下载直链格式为：
+上游发布新版本后，更新 `package.nix` 中的 `version` 和 `hash`。下载直链格式为：
 
 ```
 https://download.qoder.com/release/{version}/qoder_amd64.deb
@@ -22,7 +22,7 @@ nix store prefetch-file https://download.qoder.com/release/<version>/qoder_amd64
 nix-prefetch-url https://download.qoder.com/release/<version>/qoder_amd64.deb | xargs nix hash to-sri --type sha256
 ```
 
-将输出的 SRI hash（`sha256-...` 格式）和 version 同步更新到 `default.nix` 中。
+将输出的 SRI hash（`sha256-...` 格式）和 version 同步更新到 `package.nix` 中。
 
 ## 参考
 

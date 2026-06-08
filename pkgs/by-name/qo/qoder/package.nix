@@ -142,6 +142,7 @@ stdenv.mkDerivation {
     license = lib.licenses.unfree;
     mainProgram = "qoder";
     platforms = [ "x86_64-linux" ];
+    sourceProvenance = [ lib.sourceTypes.binaryNativeCode ];
     maintainers = [ ];
   };
 }
