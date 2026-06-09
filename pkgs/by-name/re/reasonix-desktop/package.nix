@@ -14,7 +14,7 @@
 }:
 
 let
-  version = "1.3.0";
+  version = "1.4.0";
   appIcon = fetchurl {
     url = "https://raw.githubusercontent.com/esengine/DeepSeek-Reasonix/desktop-v${version}/desktop/build/appicon.png";
     hash = "sha256-Z3jZuQOz/16ohz+fKEvnn4odE938O70Slr68CdXVgRY=";
@@ -26,7 +26,7 @@ stdenv.mkDerivation {
 
   src = fetchurl {
     url = "https://github.com/esengine/DeepSeek-Reasonix/releases/download/desktop-v${version}/Reasonix-linux-amd64.tar.gz";
-    hash = "sha256-FEYNFBF/cP42v6lSbksHl1hACbGdiQ2LN7TjxHkcd/U=";
+    hash = "sha256-Q0mAF7sT992qOzfqHSqiEzcBUzaDEcgd8WXj5x+k/BQ=";
   };
 
   sourceRoot = ".";
