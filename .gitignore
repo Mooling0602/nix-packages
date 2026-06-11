@@ -1,5 +1,6 @@
 # Editor / AI config
 .claude/
+.reasonix/
 
 # Code graph cache
 .codegraph/
