@@ -22,4 +22,10 @@ https://github.com/esengine/DeepSeek-Reasonix/releases/download/desktop-v<versio
 nix store prefetch-file https://github.com/esengine/DeepSeek-Reasonix/releases/download/desktop-v<version>/Reasonix-linux-amd64.tar.gz
 ```
 
+图标 `appIcon` 的 hash 也可能需要同步更新：
+
+```sh
+nix store prefetch-file https://raw.githubusercontent.com/esengine/DeepSeek-Reasonix/desktop-v<version>/desktop/build/appicon.png
+```
+
 桌面版源码构建依赖 Wails、pnpm 和 WebKit/GTK，因此本包使用上游发布的 `x86_64-linux` 预编译二进制。
