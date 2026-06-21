@@ -3,6 +3,7 @@
   stdenv,
   fetchurl,
   autoPatchelfHook,
+  bubblewrap,
   copyDesktopItems,
   gdk-pixbuf,
   glib,
@@ -44,6 +45,10 @@ stdenv.mkDerivation {
     libsoup_3
     webkitgtk_4_1
   ];
+
+  preFixup = ''
+    gappsWrapperArgs+=(--prefix PATH : ${lib.makeBinPath [ bubblewrap ]})
+  '';
 
   installPhase = ''
     runHook preInstall
