@@ -7,6 +7,7 @@
   copyDesktopItems,
   gdk-pixbuf,
   glib,
+  gst_all_1,
   gtk3,
   libsoup_3,
   makeDesktopItem,
@@ -16,6 +17,9 @@
 
 let
   version = "1.10.0";
+  gstPlugins = [
+    gst_all_1.gst-plugins-base
+  ];
   appIcon = fetchurl {
     url = "https://raw.githubusercontent.com/esengine/DeepSeek-Reasonix/desktop-v${version}/desktop/build/appicon.png";
     hash = "sha256-A6hFLGz8NmiFual/1ZR9syXQgxsnQBM1YxP9bPaTV/8=";
@@ -48,6 +52,7 @@ stdenv.mkDerivation {
 
   preFixup = ''
     gappsWrapperArgs+=(--prefix PATH : ${lib.makeBinPath [ bubblewrap ]})
+    gappsWrapperArgs+=(--prefix GST_PLUGIN_SYSTEM_PATH_1_0 : ${lib.makeSearchPathOutput "lib" "lib/gstreamer-1.0" gstPlugins})
   '';
 
   installPhase = ''
