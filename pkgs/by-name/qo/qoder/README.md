@@ -4,25 +4,32 @@ Qoder IDE — 阿里巴巴推出的 Agentic AI 编程平台。闭源商业软件
 
 ## 维护说明
 
-当前版本：1.10.1。上游有更新版本时，可以等待此处更新，或发起 Issue 通知。
+当前版本：1.10.3。上游有更新版本时，可以等待此处更新，或发起 Issue 通知。
 
 上游发布新版本后，更新 `package.nix` 中的 `version` 和 `hash`。下载直链格式为：
 
 ```
-https://download.qoder.com/release/{version}/qoder_amd64.deb
+https://download.qoder.com/release/<version>/qoder_amd64.deb
 ```
 
-更新步骤：
+获取 SRI 格式 hash：
 
 ```sh
-# 获取 SRI 格式 hash
 nix store prefetch-file https://download.qoder.com/release/<version>/qoder_amd64.deb
 
 # 或使用 nix-prefetch-url 后转换
 nix-prefetch-url https://download.qoder.com/release/<version>/qoder_amd64.deb | xargs nix hash to-sri --type sha256
 ```
 
-将输出的 SRI hash（`sha256-...` 格式）和 version 同步更新到 `package.nix` 中。
+也可以直接运行更新脚本。无参数时会从官方 `latest` Debian 包的 control 元数据自动检测最新版本，也可以手动指定版本：
+
+```sh
+./update.sh
+./update.sh <version>
+./update.sh -f <version>
+```
+
+如果目标版本与 `package.nix` 当前版本相同，脚本会直接退出，不重新计算 hash。使用 `-f` 或 `--force` 时必须提供版本号，并会强制重新计算 hash。
 
 ## 参考
 
