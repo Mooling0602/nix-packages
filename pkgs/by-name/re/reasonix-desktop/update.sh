@@ -66,9 +66,11 @@ esac
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 package_nix="$script_dir/package.nix"
+readme="$script_dir/README.md"
 current_version="$(sed -n 's/^[[:space:]]*version = "\([^"]*\)";/\1/p' "$package_nix")"
 
 if [ "$force" = false ] && [ "$current_version" = "$version" ]; then
+  sed -i -E "s|当前版本：[^。]+。|当前版本：$version。|" "$readme"
   echo "reasonix-desktop is already at $version"
   exit 0
 fi
@@ -99,6 +101,8 @@ sed -i -E \
   -e "/raw\.githubusercontent\.com/,/};/s|hash = \"[^\"]+\";|hash = \"$app_icon_hash\";|" \
   -e "/releases\/download/,/};/s|hash = \"[^\"]+\";|hash = \"$src_hash\";|" \
   "$package_nix"
+
+sed -i -E "s|当前版本：[^。]+。|当前版本：$version。|" "$readme"
 
 echo "Updated reasonix-desktop to $version"
 echo "app icon hash: $app_icon_hash"
