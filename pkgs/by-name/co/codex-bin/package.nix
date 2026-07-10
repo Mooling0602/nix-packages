@@ -2,6 +2,8 @@
   lib,
   stdenvNoCC,
   fetchurl,
+  makeWrapper,
+  bubblewrap,
 }:
 
 let
@@ -19,6 +21,8 @@ stdenvNoCC.mkDerivation {
 
   sourceRoot = "package/vendor/${target}";
 
+  nativeBuildInputs = [ makeWrapper ];
+
   installPhase = ''
     runHook preInstall
 
@@ -29,6 +33,11 @@ stdenvNoCC.mkDerivation {
     cp codex-package.json "$out/"
 
     runHook postInstall
+  '';
+
+  postFixup = ''
+    wrapProgram "$out/bin/codex" \
+      --prefix PATH : ${lib.makeBinPath [ bubblewrap ]}
   '';
 
   meta = {
