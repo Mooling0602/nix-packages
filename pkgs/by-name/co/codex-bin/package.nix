@@ -1,0 +1,44 @@
+{
+  lib,
+  stdenvNoCC,
+  fetchurl,
+}:
+
+let
+  version = "0.144.1";
+  target = "x86_64-unknown-linux-musl";
+in
+stdenvNoCC.mkDerivation {
+  pname = "codex-bin";
+  inherit version;
+
+  src = fetchurl {
+    url = "https://registry.npmjs.org/@openai/codex/-/codex-${version}-linux-x64.tgz";
+    hash = "sha256-4qZNQhwQqvC348DovXG3Hkl9dYIwAzGLZ0onjXGt0Mc=";
+  };
+
+  sourceRoot = "package/vendor/${target}";
+
+  installPhase = ''
+    runHook preInstall
+
+    mkdir -p "$out/bin" "$out/codex-resources" "$out/codex-path"
+    cp bin/codex bin/codex-code-mode-host "$out/bin/"
+    cp -r codex-resources/. "$out/codex-resources/"
+    cp -r codex-path/. "$out/codex-path/"
+    cp codex-package.json "$out/"
+
+    runHook postInstall
+  '';
+
+  meta = {
+    description = "OpenAI Codex CLI binary distribution";
+    homepage = "https://github.com/openai/codex";
+    changelog = "https://github.com/openai/codex/releases/tag/rust-v${version}";
+    license = lib.licenses.asl20;
+    mainProgram = "codex";
+    platforms = [ "x86_64-linux" ];
+    sourceProvenance = [ lib.sourceTypes.binaryNativeCode ];
+    maintainers = [ ];
+  };
+}
