@@ -16,7 +16,7 @@
 }:
 
 let
-  version = "1.17.14";
+  version = "1.17.15";
   gstPlugins = [
     gst_all_1.gst-plugins-base
   ];
@@ -31,7 +31,7 @@ stdenv.mkDerivation {
 
   src = fetchurl {
     url = "https://github.com/esengine/DeepSeek-Reasonix/releases/download/desktop-v${version}/Reasonix-linux-amd64.tar.gz";
-    hash = "sha256-Xw6PCJmAORLI8tsX5Wrz3s4yJUnelIgxGNPh8Aog+xg=";
+    hash = "sha256-2lKSQzvd7KuOF091EDw3jaR3mH9K5mBBF6yWrWVmnpE=";
   };
 
   sourceRoot = ".";
