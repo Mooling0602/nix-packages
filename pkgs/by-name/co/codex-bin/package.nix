@@ -7,7 +7,7 @@
 }:
 
 let
-  version = "0.144.5";
+  version = "0.144.6";
   target = "x86_64-unknown-linux-musl";
 in
 stdenvNoCC.mkDerivation {
@@ -16,7 +16,7 @@ stdenvNoCC.mkDerivation {
 
   src = fetchurl {
     url = "https://registry.npmjs.org/@openai/codex/-/codex-${version}-linux-x64.tgz";
-    hash = "sha256-f6Lhdjp+bPR+ATtX6VmXRAw27AyVJVpDKGFrMABcSHY=";
+    hash = "sha256-tnUusujBDm/MlqxcHIrYNCzbmnRQT7hGhq3fCBp9KGg=";
   };
 
   sourceRoot = "package/vendor/${target}";
