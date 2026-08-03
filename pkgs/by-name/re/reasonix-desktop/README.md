@@ -4,7 +4,7 @@ Reasonix Desktop — DeepSeek-Reasonix 的 Wails/WebKit 桌面应用。
 
 ## 维护说明
 
-当前版本：1.18.0。桌面版发布使用 `desktop-v<version>` 标签，Linux 资产名为：
+当前版本：1.19.3。桌面版发布使用 `desktop-v<version>` 标签，Linux 资产名为：
 
 ```sh
 Reasonix-linux-amd64.tar.gz

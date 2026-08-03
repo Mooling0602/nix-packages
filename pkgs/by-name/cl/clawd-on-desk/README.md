@@ -4,7 +4,7 @@ Clawd on Desk — 会实时响应 AI 编程助手会话的桌面陪伴宠物。
 
 ## 维护说明
 
-当前版本：0.13.0。上游发布新版本后，更新 `package.nix` 中的 `version` 和 `hash`。Linux 资产名为：
+当前版本：0.14.0。上游发布新版本后，更新 `package.nix` 中的 `version` 和 `hash`。Linux 资产名为：
 
 ```sh
 Clawd-on-Desk-<version>-amd64.deb
