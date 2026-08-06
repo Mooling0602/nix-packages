@@ -43,7 +43,7 @@
 }:
 
 let
-  version = "1.21.2";
+  version = "1.22.1";
 in
 stdenv.mkDerivation {
   pname = "qoder";
@@ -51,7 +51,7 @@ stdenv.mkDerivation {
 
   src = fetchurl {
     url = "https://download.qoder.com/release/${version}/qoder_amd64.deb";
-    hash = "sha256-NQYYXTBP7p7lV4pryNqf+N/vSyoxojdbLtdgD3pvHNs=";
+    hash = "sha256-TJpPGk0NBSwbg8ClCLzgrValjGgoYAjCAR11WhY2FEs=";
   };
 
   nativeBuildInputs = [
