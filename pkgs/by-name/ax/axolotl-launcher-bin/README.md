@@ -1,6 +1,6 @@
 # axolotl-launcher-bin
 
-> 🇬🇧 English · [简体中文](README_zh_CN.md)
+> English · [简体中文](README_zh_CN.md)
 
 Axolotl Launcher, a free cross-platform Minecraft launcher built on the Modrinth
 ecosystem, packaged from the official Linux `.deb`.

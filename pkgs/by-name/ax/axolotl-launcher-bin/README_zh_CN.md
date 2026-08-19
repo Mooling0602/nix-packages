@@ -1,6 +1,6 @@
 # axolotl-launcher-bin
 
-> 🇨🇳 简体中文 · [English](README.md)
+> 中文（简体） · [English](README.md)
 
 Axolotl Launcher，一款基于 Modrinth 生态构建的自由跨平台 Minecraft 启动器，打包自官方 Linux `.deb`。
 
