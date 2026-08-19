@@ -1,6 +1,6 @@
 # clawd-on-desk
 
-> 🇨🇳 简体中文 · [English](README.md)
+> 中文（简体） · [English](README.md)
 
 Clawd on Desk — 会实时响应 AI 编程助手会话的桌面陪伴宠物。
 

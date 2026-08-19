@@ -1,6 +1,6 @@
 # nix-packages
 
-> 🇨🇳 简体中文 · [English](README.md)
+> 中文（简体） · [English](README.md)
 
 Mooling0602 的 [NUR](https://github.com/nix-community/NUR) 软件仓库，由 木泠 维护。未来可能会增加其他软件包。
 

@@ -1,6 +1,6 @@
 # reasonix-desktop
 
-> 🇨🇳 简体中文 · [English](README.md)
+> 中文（简体） · [English](README.md)
 
 Reasonix Desktop — DeepSeek-Reasonix 的 Wails/WebKit 桌面应用。
 

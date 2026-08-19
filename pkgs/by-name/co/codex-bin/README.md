@@ -1,6 +1,6 @@
 # codex-bin
 
-> 🇬🇧 English · [简体中文](README_zh_CN.md)
+> English · [简体中文](README_zh_CN.md)
 
 OpenAI Codex CLI packaged from the official Linux npm platform archive.
 

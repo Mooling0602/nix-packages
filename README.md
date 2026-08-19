@@ -1,6 +1,6 @@
 # nix-packages
 
-> 🇬🇧 English · [简体中文](README_zh_CN.md)
+> English · [简体中文](README_zh_CN.md)
 
 Mooling0602's [NUR](https://github.com/nix-community/NUR) repository. May include other packages in the future.
 
