@@ -2,7 +2,7 @@
 
 > English · [简体中文](README_zh_CN.md)
 
-Reasonix Desktop — a Wails/WebKit desktop app for DeepSeek-Reasonix.
+[Reasonix](https://github.com/esengine/DeepSeek-Reasonix) Desktop — a Wails/WebKit desktop app for DeepSeek-Reasonix.
 
 ## Maintenance notes
 

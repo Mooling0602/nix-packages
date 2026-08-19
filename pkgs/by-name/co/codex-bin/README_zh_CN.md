@@ -2,7 +2,7 @@
 
 > 中文（简体） · [English](README.md)
 
-OpenAI Codex CLI，打包自官方 Linux npm 平台归档。
+OpenAI [Codex](https://github.com/openai/codex) CLI，打包自官方 Linux npm 平台归档。
 
 当前版本：0.148.0。
 

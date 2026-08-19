@@ -2,7 +2,7 @@
 
 > 中文（简体） · [English](README.md)
 
-Qoder IDE — 阿里巴巴推出的 Agentic AI 编程平台。闭源商业软件（`unfree`），目前仅支持 `x86_64-linux`。
+[Qoder IDE](https://qoder.com/zh/ide) — 阿里巴巴推出的 Agentic AI 编程平台。闭源商业软件（`unfree`），目前仅支持 `x86_64-linux`。
 
 ## 维护说明
 

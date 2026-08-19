@@ -2,7 +2,7 @@
 
 > 中文（简体） · [English](README.md)
 
-Clawd on Desk — 会实时响应 AI 编程助手会话的桌面陪伴宠物。
+[Clawd on Desk](https://github.com/rullerzhou-afk/clawd-on-desk) — 会实时响应 AI 编程助手会话的桌面陪伴宠物。
 
 ## 维护说明
 

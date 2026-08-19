@@ -2,7 +2,7 @@
 
 > English · [简体中文](README_zh_CN.md)
 
-OpenAI Codex CLI packaged from the official Linux npm platform archive.
+OpenAI [Codex](https://github.com/openai/codex) CLI packaged from the official Linux npm platform archive.
 
 Current version: 0.148.0.
 

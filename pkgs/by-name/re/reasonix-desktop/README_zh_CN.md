@@ -2,7 +2,7 @@
 
 > 中文（简体） · [English](README.md)
 
-Reasonix Desktop — DeepSeek-Reasonix 的 Wails/WebKit 桌面应用。
+[Reasonix](https://github.com/esengine/DeepSeek-Reasonix) Desktop — DeepSeek-Reasonix 的 Wails/WebKit 桌面应用。
 
 ## 维护说明
 

@@ -2,7 +2,7 @@
 
 > English · [简体中文](README_zh_CN.md)
 
-Axolotl Launcher, a free cross-platform Minecraft launcher built on the Modrinth
+[Axolotl Launcher](https://github.com/Mystic-Stars/Axolotl), a free cross-platform Minecraft launcher built on the Modrinth
 ecosystem, packaged from the official Linux `.deb`.
 
 Current version: 1.8.7.

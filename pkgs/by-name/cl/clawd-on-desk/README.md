@@ -2,7 +2,7 @@
 
 > English · [简体中文](README_zh_CN.md)
 
-Clawd on Desk — a desktop companion pet that reacts to AI coding assistant
+[Clawd on Desk](https://github.com/rullerzhou-afk/clawd-on-desk) — a desktop companion pet that reacts to AI coding assistant
 sessions in real time.
 
 ## Maintenance notes
