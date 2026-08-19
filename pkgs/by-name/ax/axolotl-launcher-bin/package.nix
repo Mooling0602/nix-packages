@@ -17,7 +17,25 @@
   fontconfig,
   freetype,
   libGL,
+  gst_all_1,
 }:
+
+let
+  gstreamer = gst_all_1.gstreamer;
+  gst-plugins-base = gst_all_1.gst-plugins-base;
+  gst-plugins-good = gst_all_1.gst-plugins-good;
+  gst-plugins-bad = gst_all_1.gst-plugins-bad;
+
+  # GStreamer plugin search path. WebKit instantiates media elements via
+  # GStreamer; without this, it fails with "GStreamer element appsink not
+  # found" because the plugins are not on the runtime plugin path.
+  gstPluginsPath = lib.makeSearchPath "lib/gstreamer-1.0" [
+    gstreamer
+    gst-plugins-base
+    gst-plugins-good
+    gst-plugins-bad
+  ];
+in
 
 let
   pname = "axolotl-launcher-bin";
@@ -53,6 +71,10 @@ stdenv.mkDerivation {
     fontconfig
     freetype
     libGL
+    gstreamer
+    gst-plugins-base
+    gst-plugins-good
+    gst-plugins-bad
     stdenv.cc.cc.lib # libstdc++.so.6, libgcc_s.so.1
   ];
 
@@ -92,9 +114,11 @@ stdenv.mkDerivation {
       "$out/share/icons/hicolor/256x256@2/apps/axolotl-launcher.png"
 
     # Allow the user to opt into native Wayland (default stays X11/XWayland,
-    # where the cursor theme already works).
+    # where the cursor theme already works). GStreamer plugin path lets WebKit
+    # find media elements (appsink etc.) at runtime.
     wrapProgram "$out/bin/axolotl-launcher" \
-      --set-default GDK_BACKEND x11
+      --set-default GDK_BACKEND x11 \
+      --set GST_PLUGIN_PATH "${gstPluginsPath}"
 
     runHook postInstall
   '';
