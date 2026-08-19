@@ -1,6 +1,8 @@
 # nix-packages
 
-Mooling0602's [NUR](https://github.com/nix-community/NUR) repository — maintained by 木泠. May include other packages in the future.
+> 🇬🇧 English · [简体中文](README_zh_CN.md)
+
+Mooling0602's [NUR](https://github.com/nix-community/NUR) repository. May include other packages in the future.
 
 ## Usage
 
@@ -27,11 +29,11 @@ Mooling0602's [NUR](https://github.com/nix-community/NUR) repository — maintai
 
 | Package | Description |
 |---------|-------------|
-| `axolotl-launcher-bin` | Axolotl Launcher, a free cross-platform Minecraft launcher built on the Modrinth ecosystem, from the official `.deb` (GPL-3.0, x86_64-linux only) |
-| `codex-bin` | OpenAI Codex CLI from the official Linux binary distribution (x86_64-linux only) |
-| `clawd-on-desk` | Desktop companion pet that reacts to AI coding assistant sessions in real time (x86_64-linux only) |
-| `qoder` | Alibaba's agentic AI coding platform with deep codebase awareness (unfree, x86_64-linux only) |
-| `reasonix-desktop` | Desktop app for the DeepSeek-Reasonix reasoning enhancer (x86_64-linux only) |
+| `[axolotl-launcher-bin](pkgs/by-name/axolotl-launcher-bin/README.md)` | Axolotl Launcher, a free cross-platform Minecraft launcher built on the Modrinth ecosystem, from the official `.deb` (GPL-3.0, x86_64-linux only) |
+| `[codex-bin](pkgs/by-name/codex-bin/README.md)` | OpenAI Codex CLI from the official Linux binary distribution (x86_64-linux only) |
+| `[clawd-on-desk](pkgs/by-name/clawd-on-desk/README.md)` | Desktop companion pet that reacts to AI coding assistant sessions in real time (x86_64-linux only) |
+| `[qoder](pkgs/by-name/qoder/README.md)` | Alibaba's agentic AI coding platform with deep codebase awareness (unfree, x86_64-linux only) |
+| `[reasonix-desktop](pkgs/by-name/reasonix-desktop/README.md)` | Desktop app for the DeepSeek-Reasonix reasoning enhancer (x86_64-linux only) |
 
 ## License
 

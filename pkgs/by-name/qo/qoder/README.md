@@ -1,27 +1,34 @@
 # qoder
 
-Qoder IDE — 阿里巴巴推出的 Agentic AI 编程平台。闭源商业软件（`unfree`），目前仅支持 `x86_64-linux`。
+> 🇬🇧 English · [简体中文](README_zh_CN.md)
 
-## 维护说明
+Qoder IDE — Alibaba's agentic AI coding platform. Closed-source commercial
+software (`unfree`), currently only supported on `x86_64-linux`.
 
-当前版本：1.24.2。上游有更新版本时，可以等待此处更新，或发起 Issue 通知。
+## Maintenance notes
 
-上游发布新版本后，更新 `package.nix` 中的 `version` 和 `hash`。下载直链格式为：
+Current version: 1.24.2. When a newer version is available upstream, you may
+wait for this package to be updated, or open an Issue to request it.
+
+When upstream releases a new version, update the `version` and `hash` in
+`package.nix`. The direct download URL is:
 
 ```
 https://download.qoder.com/release/<version>/qoder_amd64.deb
 ```
 
-获取 SRI 格式 hash：
+To get the SRI-format hash:
 
 ```sh
 nix store prefetch-file https://download.qoder.com/release/<version>/qoder_amd64.deb
 
-# 或使用 nix-prefetch-url 后转换
+# or use nix-prefetch-url and convert
 nix-prefetch-url https://download.qoder.com/release/<version>/qoder_amd64.deb | xargs nix hash to-sri --type sha256
 ```
 
-也可以直接运行更新脚本。无参数时会从官方 `latest` Debian 包的 control 元数据自动检测最新版本，也可以手动指定版本：
+Alternatively, run the update script. With no argument it auto-detects the
+latest version from the `control` metadata of the official `latest` Debian
+package; you can also specify a version manually:
 
 ```sh
 ./update.sh
@@ -29,8 +36,11 @@ nix-prefetch-url https://download.qoder.com/release/<version>/qoder_amd64.deb | 
 ./update.sh -f <version>
 ```
 
-如果目标版本与 `package.nix` 当前版本相同，脚本会直接退出，不重新计算 hash。使用 `-f` 或 `--force` 时必须提供版本号，并会强制重新计算 hash。
+If the target version matches the current version in `package.nix`, the script
+exits without recomputing the hash. Using `-f` or `--force` requires a version
+and forces the hash to be recomputed.
 
-## 参考
+## References
 
-本包参考了 [boheastill/qoder-nix](https://github.com/boheastill/qoder-nix) 的非官方打包。
+This package is based on the unofficial packaging from
+[boheastill/qoder-nix](https://github.com/boheastill/qoder-nix).

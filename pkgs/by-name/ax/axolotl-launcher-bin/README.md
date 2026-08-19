@@ -1,9 +1,11 @@
 # axolotl-launcher-bin
 
+> 🇬🇧 English · [简体中文](README_zh_CN.md)
+
 Axolotl Launcher, a free cross-platform Minecraft launcher built on the Modrinth
 ecosystem, packaged from the official Linux `.deb`.
 
-当前版本：1.8.7。
+Current version: 1.8.7.
 
 Unlike the official AppImage (which bundles its own self-contained GTK/WebKit
 runtime and therefore cannot read the host session's cursor-theme config), the

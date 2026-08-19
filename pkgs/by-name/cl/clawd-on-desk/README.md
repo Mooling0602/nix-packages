@@ -1,28 +1,33 @@
 # clawd-on-desk
 
-Clawd on Desk — 会实时响应 AI 编程助手会话的桌面陪伴宠物。
+> 🇬🇧 English · [简体中文](README_zh_CN.md)
 
-## 维护说明
+Clawd on Desk — a desktop companion pet that reacts to AI coding assistant
+sessions in real time.
 
-当前版本：0.15.0。上游发布新版本后，更新 `package.nix` 中的 `version` 和 `hash`。Linux 资产名为：
+## Maintenance notes
+
+Current version: 0.15.0. When upstream releases a new version, update the
+`version` and `hash` in `package.nix`. The Linux asset is named:
 
 ```sh
 Clawd-on-Desk-<version>-amd64.deb
 ```
 
-下载直链格式为：
+The direct download URL is:
 
 ```sh
 https://github.com/rullerzhou-afk/clawd-on-desk/releases/download/v<version>/Clawd-on-Desk-<version>-amd64.deb
 ```
 
-获取 SRI 格式 hash：
+To get the SRI-format hash:
 
 ```sh
 nix store prefetch-file https://github.com/rullerzhou-afk/clawd-on-desk/releases/download/v<version>/Clawd-on-Desk-<version>-amd64.deb
 ```
 
-也可以直接运行更新脚本。无参数时会自动检测最新版本，也可以手动指定版本：
+Alternatively, run the update script. With no argument it auto-detects the
+latest version; you can also specify a version manually:
 
 ```sh
 ./update.sh
@@ -30,6 +35,8 @@ nix store prefetch-file https://github.com/rullerzhou-afk/clawd-on-desk/releases
 ./update.sh -f <version>
 ```
 
-如果目标版本与 `package.nix` 当前版本相同，脚本会直接退出，不重新计算 hash。使用 `-f` 或 `--force` 时必须提供版本号，并会强制重新计算 hash。
+If the target version matches the current version in `package.nix`, the script
+exits without recomputing the hash. Using `-f` or `--force` requires a version
+and forces the hash to be recomputed.
 
-本包使用上游发布的 `x86_64-linux` 预编译 Debian 包。
+This package uses the upstream-published `x86_64-linux` prebuilt Debian package.

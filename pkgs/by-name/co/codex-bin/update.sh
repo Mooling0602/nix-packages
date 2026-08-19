@@ -56,10 +56,17 @@ esac
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 package_nix="$script_dir/package.nix"
 readme="$script_dir/README.md"
+readme_zh="$script_dir/README_zh_CN.md"
 current_version="$(sed -n 's/^[[:space:]]*version = "\([^"]*\)";/\1/p' "$package_nix")"
 
+# Update the version line in both the English and Chinese READMEs.
+update_readme_versions() {
+  sed -i -E "s|Current version: [0-9][^ ]*\.|Current version: $version.|" "$readme"
+  sed -i -E "s|当前版本：[^。]+。|当前版本：$version。|" "$readme_zh"
+}
+
 if [ "$force" = false ] && [ "$current_version" = "$version" ]; then
-  sed -i -E "s|当前版本：[^。]+。|当前版本：$version。|" "$readme"
+  update_readme_versions
   echo "codex-bin is already at $version"
   exit 0
 fi
@@ -79,7 +86,7 @@ sed -i -E \
   -e "s|hash = \"[^\"]+\";|hash = \"$src_hash\";|" \
   "$package_nix"
 
-sed -i -E "s|当前版本：[^。]+。|当前版本：$version。|" "$readme"
+update_readme_versions
 
 echo "Updated codex-bin to $version"
 echo "src hash: $src_hash"
