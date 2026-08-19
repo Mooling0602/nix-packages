@@ -1,6 +1,6 @@
 # reasonix-desktop
 
-> English · [简体中文](README_zh_CN.md)
+> English · [中文（简体）](README_zh_CN.md)
 
 [Reasonix](https://github.com/esengine/DeepSeek-Reasonix) Desktop — a Wails/WebKit desktop app for DeepSeek-Reasonix.
 

@@ -1,6 +1,6 @@
 # qoder
 
-> English · [简体中文](README_zh_CN.md)
+> English · [中文（简体）](README_zh_CN.md)
 
 [Qoder IDE](https://qoder.com/en/ide) — Alibaba's agentic AI coding platform. Closed-source commercial
 software (`unfree`), currently only supported on `x86_64-linux`.

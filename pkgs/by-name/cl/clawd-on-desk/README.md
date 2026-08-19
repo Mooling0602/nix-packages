@@ -1,6 +1,6 @@
 # clawd-on-desk
 
-> English · [简体中文](README_zh_CN.md)
+> English · [中文（简体）](README_zh_CN.md)
 
 [Clawd on Desk](https://github.com/rullerzhou-afk/clawd-on-desk) — a desktop companion pet that reacts to AI coding assistant
 sessions in real time.
