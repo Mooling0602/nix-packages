@@ -27,6 +27,7 @@ Mooling0602's [NUR](https://github.com/nix-community/NUR) repository — maintai
 
 | Package | Description |
 |---------|-------------|
+| `axolotl-launcher-bin` | Axolotl Launcher, a free cross-platform Minecraft launcher built on the Modrinth ecosystem, from the official `.deb` (GPL-3.0, x86_64-linux only) |
 | `codex-bin` | OpenAI Codex CLI from the official Linux binary distribution (x86_64-linux only) |
 | `clawd-on-desk` | Desktop companion pet that reacts to AI coding assistant sessions in real time (x86_64-linux only) |
 | `qoder` | Alibaba's agentic AI coding platform with deep codebase awareness (unfree, x86_64-linux only) |
