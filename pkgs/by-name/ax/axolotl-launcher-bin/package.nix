@@ -40,11 +40,11 @@ in
 
 let
   pname = "axolotl-launcher-bin";
-  version = "1.8.8";
+  version = "1.8.9";
 
   src = fetchurl {
     url = "https://github.com/Mystic-Stars/Axolotl/releases/download/v${version}/Axolotl.Launcher_${version}_amd64.deb";
-    hash = "sha256-lnOymnRDAswTeqkXQjMtKEuxs06XxVwaUKIEEWhk+h0=";
+    hash = "sha256-M71wRnsobhMXS8cHJEqakiuVM5evl/lheOchQpDWKLo=";
   };
 
 in
