@@ -8,6 +8,7 @@
   gtk3,
   libsoup_3,
   glib,
+  glib-networking,
   gdk-pixbuf,
   cairo,
   dbus,
@@ -62,6 +63,7 @@ stdenv.mkDerivation {
     gtk3
     libsoup_3
     glib
+    glib-networking # GIO TLS backend (GnuTLS); without it libsoup3 reports "TLS support is not available"
     gdk-pixbuf
     cairo
     dbus
@@ -115,10 +117,12 @@ stdenv.mkDerivation {
 
     # Allow the user to opt into native Wayland (default stays X11/XWayland,
     # where the cursor theme already works). GStreamer plugin path lets WebKit
-    # find media elements (appsink etc.) at runtime.
+    # find media elements (appsink etc.) at runtime. GIO_EXTRA_MODULES exposes
+    # the GnuTLS TLS backend so libsoup3 can open https:// login pages.
     wrapProgram "$out/bin/axolotl-launcher" \
       --set-default GDK_BACKEND x11 \
-      --set GST_PLUGIN_PATH "${gstPluginsPath}"
+      --set GST_PLUGIN_PATH "${gstPluginsPath}" \
+      --suffix GIO_EXTRA_MODULES : "${glib-networking}/lib/gio/modules"
 
     runHook postInstall
   '';
