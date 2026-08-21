@@ -6,7 +6,7 @@
 agent harness and CLI — packaged from the official npm tarball with a pinned
 dependency lockfile.
 
-Current version: 0.1.0-rc.8.
+Current version: 0.1.1-rc.2.
 
 The package is built with `buildNpmPackage`: it pulls the `@deepseek-ai/dsh`
 tarball, injects the vendored `package-lock.json`, and produces the `dsh`

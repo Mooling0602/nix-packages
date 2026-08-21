@@ -5,7 +5,7 @@
 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的 `dsh`
 agent 框架与 CLI，以官方 npm tarball 打包，并使用固定的依赖锁文件。
 
-当前版本：0.1.0-rc.8。
+当前版本：0.1.1-rc.2。
 
 本包通过 `buildNpmPackage` 构建：拉取 `@deepseek-ai/dsh` tarball，注入随附的
 `package-lock.json`，最终生成 `dsh` 启动器。安装后的 `dsh` 入口包装了
