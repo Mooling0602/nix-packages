@@ -4,7 +4,7 @@
 
 [Axolotl Launcher](https://github.com/Mystic-Stars/Axolotl)（美西螈启动器），一款基于 Modrinth 生态构建的自由跨平台 Minecraft 启动器，打包自官方 Linux `.deb`。
 
-当前版本：1.8.7。
+当前版本：1.8.8。
 
 与官方 AppImage（内建自包含的 GTK/WebKit 运行时，因此无法读取宿主会话的光标主题配置）不同，`.deb` 载荷是动态链接的二进制，使用系统共享的 GTK3/WebKit 库（webkitgtk_4_1、gtk3、libsoup_3、glib 等）。这意味着在 X11 和原生 Wayland 下，光标主题都能正确跟随桌面会话。
 

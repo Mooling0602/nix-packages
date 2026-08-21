@@ -4,7 +4,7 @@
 
 OpenAI [Codex](https://github.com/openai/codex) CLI packaged from the official Linux npm platform archive.
 
-Current version: 0.148.0.
+Current version: 0.149.0.
 
 The platform archive includes the main `codex` executable and its runtime
 helpers and resources, including `codex-code-mode-host`.

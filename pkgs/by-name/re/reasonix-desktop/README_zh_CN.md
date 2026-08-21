@@ -6,7 +6,7 @@
 
 ## 维护说明
 
-当前版本：1.30.0。桌面版发布使用 `desktop-v<version>` 标签，Linux 资产名为：
+当前版本：1.31.0。桌面版发布使用 `desktop-v<version>` 标签，Linux 资产名为：
 
 ```sh
 Reasonix-linux-amd64.tar.gz

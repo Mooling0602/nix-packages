@@ -4,7 +4,7 @@
 
 OpenAI [Codex](https://github.com/openai/codex) CLI，打包自官方 Linux npm 平台归档。
 
-当前版本：0.148.0。
+当前版本：0.149.0。
 
 该平台归档包含主 `codex` 可执行文件及其运行时辅助程序和资源，包括 `codex-code-mode-host`。
 
