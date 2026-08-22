@@ -119,10 +119,15 @@ stdenv.mkDerivation {
     # where the cursor theme already works). GStreamer plugin path lets WebKit
     # find media elements (appsink etc.) at runtime. GIO_EXTRA_MODULES exposes
     # the GnuTLS TLS backend so libsoup3 can open https:// login pages.
+    # LD_LIBRARY_PATH exposes libayatana-appindicator3.so.1, which
+    # libappindicator-sys dlopens for the tray icon: autoPatchelfHook only
+    # patches DT_NEEDED entries, so dlopened libs must be on the loader path
+    # (same treatment as Tauri/Electron apps in nixpkgs).
     wrapProgram "$out/bin/axolotl-launcher" \
       --set-default GDK_BACKEND x11 \
       --set GST_PLUGIN_PATH "${gstPluginsPath}" \
-      --suffix GIO_EXTRA_MODULES : "${glib-networking}/lib/gio/modules"
+      --suffix GIO_EXTRA_MODULES : "${glib-networking}/lib/gio/modules" \
+      --prefix LD_LIBRARY_PATH : "${lib.makeLibraryPath [ libayatana-appindicator ]}"
 
     runHook postInstall
   '';
