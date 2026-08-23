@@ -4,6 +4,7 @@
   fetchurl,
   autoPatchelfHook,
   makeWrapper,
+  wrapGAppsHook4,
   webkitgtk_4_1,
   gtk3,
   libsoup_3,
@@ -56,6 +57,7 @@ stdenv.mkDerivation {
   nativeBuildInputs = [
     autoPatchelfHook
     makeWrapper
+    wrapGAppsHook4
   ];
 
   buildInputs = [
@@ -94,12 +96,29 @@ stdenv.mkDerivation {
   installPhase = ''
     runHook preInstall
 
-    mkdir -p "$out/bin" "$out/share"
+    mkdir -p "$out/bin" "$out/libexec" "$out/share"
 
     # Main binary (uses the system GTK/WebKit, so the cursor theme follows the
     # desktop session — unlike the self-contained AppImage, which bundled its
     # own GTK and could not read the host's cursor-theme config).
-    install -Dm755 "usr/bin/Axolotl Launcher" "$out/bin/axolotl-launcher"
+    install -Dm755 "usr/bin/Axolotl Launcher" "$out/libexec/axolotl-launcher"
+
+      # Shell launcher: auto-detect the display protocol and set GDK_BACKEND
+      # accordingly (wayland under Wayland, x11 otherwise). Users can override
+      # by exporting GDK_BACKEND before launching. The real binary in libexec/
+      # is wrapped by wrapGAppsHook4 in postFixup.
+      cat > "$out/bin/axolotl-launcher" <<EOF
+#!/bin/sh
+if [ -z "\$GDK_BACKEND" ]; then
+  if [ -n "\$WAYLAND_DISPLAY" ]; then
+    export GDK_BACKEND=wayland
+  else
+    export GDK_BACKEND=x11
+  fi
+fi
+exec "$out/libexec/axolotl-launcher" "\$@"
+EOF
+      chmod +x "$out/bin/axolotl-launcher"
 
     # Desktop integration: install under canonical names and rewrite the
     # Exec/Icon to the no-space launcher name. The deb ships the desktop and
@@ -115,21 +134,31 @@ stdenv.mkDerivation {
     install -Dm644 "usr/share/icons/hicolor/256x256@2/apps/Axolotl Launcher.png" \
       "$out/share/icons/hicolor/256x256@2/apps/axolotl-launcher.png"
 
-    # Allow the user to opt into native Wayland (default stays X11/XWayland,
-    # where the cursor theme already works). GStreamer plugin path lets WebKit
-    # find media elements (appsink etc.) at runtime. GIO_EXTRA_MODULES exposes
-    # the GnuTLS TLS backend so libsoup3 can open https:// login pages.
-    # LD_LIBRARY_PATH exposes libayatana-appindicator3.so.1, which
-    # libappindicator-sys dlopens for the tray icon: autoPatchelfHook only
-    # patches DT_NEEDED entries, so dlopened libs must be on the loader path
-    # (same treatment as Tauri/Electron apps in nixpkgs).
-    wrapProgram "$out/bin/axolotl-launcher" \
-      --set-default GDK_BACKEND x11 \
-      --set GST_PLUGIN_PATH "${gstPluginsPath}" \
-      --suffix GIO_EXTRA_MODULES : "${glib-networking}/lib/gio/modules" \
-      --prefix LD_LIBRARY_PATH : "${lib.makeLibraryPath [ libayatana-appindicator ]}"
-
     runHook postInstall
+  '';
+
+  # Custom wrapper args for wrapGAppsHook4. GIO_EXTRA_MODULES for the GnuTLS
+  # TLS backend is injected automatically by the hook's find_gio_modules, so
+  # it is not repeated here. GDK_BACKEND is handled by the shell launcher in
+  # bin/ (auto-detects Wayland vs X11), so it is not set here either.
+  preFixup = ''
+    gappsWrapperArgs+=(
+      # Let WebKit find GStreamer media elements (appsink etc.) at runtime.
+      --set GST_PLUGIN_PATH "${gstPluginsPath}"
+      # Expose libayatana-appindicator3.so.1, which libappindicator-sys
+      # dlopens for the tray icon: autoPatchelfHook only patches DT_NEEDED
+      # entries, so dlopened libs must be on the loader path (same treatment
+      # as Tauri/Electron apps in nixpkgs).
+      --prefix LD_LIBRARY_PATH : "${lib.makeLibraryPath [ libayatana-appindicator ]}"
+    )
+  '';
+
+  # Prevent wrapGAppsHook4 from auto-wrapping the shell launcher in bin/; we
+  # manually wrap only the real binary in libexec/.
+  dontWrapGApps = true;
+
+  postFixup = ''
+    wrapGApp "$out/libexec/axolotl-launcher"
   '';
 
   meta = {
