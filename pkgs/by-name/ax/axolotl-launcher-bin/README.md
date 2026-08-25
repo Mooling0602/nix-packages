@@ -7,27 +7,42 @@ ecosystem, packaged from the official Linux `.deb`.
 
 Current version: 1.8.14.
 
-Unlike the official AppImage (which bundles its own self-contained GTK/WebKit
-runtime and therefore cannot read the host session's cursor-theme config), the
-`.deb` payload is a dynamically linked binary that uses the system GTK3/WebKit
-libraries (webkitgtk_4_1, gtk3, libsoup_3, glib, …). This means the cursor
-theme follows the desktop session correctly under both X11 and native Wayland.
+## FHS environment
 
-The package extracts the `.deb`'s `data.tar`, installs the main binary as
-`axolotl-launcher`, and uses `autoPatchelfHook` + `buildInputs` to satisfy all
-dynamic dependencies.
+The launcher is wrapped in a bubblewrap FHS sandbox (`buildFHSEnv`). Minecraft
+launchers download prebuilt Java runtimes and native libraries that assume a
+standard Linux filesystem, and mods frequently ship their own native libraries
+linking against distro sonames. Inside the sandbox all of those binaries — the
+launcher itself, the auto-downloaded JREs, LWJGL natives and mod-provided
+`.so` files — resolve their dependencies through `/usr/lib` and the ldconfig
+cache, so dependency-heavy mods launch normally on NixOS.
+
+The environment ships the full Minecraft runtime stack (mirroring
+[prismlauncher](https://github.com/NixOS/nixpkgs/blob/master/pkgs/by-name/pr/prismlauncher/package.nix)):
+audio servers (alsa, pulseaudio, pipewire, jack), X11/Wayland client libraries,
+GL/Vulkan loaders, udev (oshi), flite (narrator), gamemode, libusb
+(controllers), plus `pciutils`/`xrandr` for the helpers Minecraft shells out
+to. A `jdk21` fallback is exposed as `/usr/bin/java`; the launcher still
+auto-downloads the exact JRE each instance needs (verified working inside the
+sandbox). GPU drivers come from the host's `/run/opengl-driver`, which is
+bind-mounted into the sandbox and takes priority on the library path.
+
+The GUI continues to use GTK3/WebKitGTK from the sandbox's `/usr/lib`, with
+dconf, GIO modules (TLS, GSettings) and GStreamer plugins all wired up, so
+theming and media playback keep working as before.
 
 ## Display backends
 
-- **X11 (default)**: rendered through XWayland on Wayland sessions.
-- **Native Wayland**: prepend `GDK_BACKEND=wayland`:
+The wrapper auto-detects the display protocol (`GDK_BACKEND=wayland` under
+Wayland, `x11` otherwise). Override by exporting `GDK_BACKEND` before
+launching:
 
-  ```bash
-  GDK_BACKEND=wayland axolotl-launcher
-  ```
+```bash
+GDK_BACKEND=wayland axolotl-launcher
+```
 
-Both backends use the system GTK/WebKit, so the in-window pointer cursor
-follows the session theme (`XDG_CURSOR_THEME` / GSettings) in both modes.
+The in-window pointer cursor follows the session theme (`XDG_CURSOR_THEME` /
+GSettings) in both modes.
 
 ## Update
 
