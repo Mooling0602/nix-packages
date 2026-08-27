@@ -59,11 +59,11 @@
 }:
 
 let
-  version = "1.8.14";
+  version = "1.9.0";
 
   src = fetchurl {
     url = "https://github.com/Mystic-Stars/Axolotl/releases/download/v${version}/Axolotl.Launcher_${version}_amd64.deb";
-    hash = "sha256-6HJqAYHIbqKoUfdLyB+/YocwbGwtJwC6YN8PG/yx1IA=";
+    hash = "sha256-qwKsrC9a+1QHAgCVCcn4HXfujiqiVFA4RvsM6hvQZfQ=";
   };
 
   # The raw .deb payload, unpacked. The binary is intentionally NOT patched:

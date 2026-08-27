@@ -18,7 +18,7 @@ FHS 方案的副作用：
 
 ## 维护说明
 
-当前版本：0.10.1。上游发布使用 `v<version>` 标签，Linux x86_64 产物命名为：
+当前版本：0.10.2。上游发布使用 `v<version>` 标签，Linux x86_64 产物命名为：
 
 ```sh
 OpenFic-<version>-linux-x86_64.tar.gz
