@@ -9,6 +9,7 @@ update_scripts=("$repo_root"/pkgs/**/update.sh)
 # reason shown to the user. Add an entry here to skip a long-running script.
 declare -A skipped_update_scripts=(
   ["pkgs/by-name/de/deepseek-harness/update.sh"]="due to the excessive time it would consume"
+  ["pkgs/by-name/de/deepseek-harness-git/update.sh"]="due to the excessive time it would consume"
 )
 
 for update_script in "${update_scripts[@]}"; do
