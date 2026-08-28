@@ -1,7 +1,7 @@
 # openfic-git
 
 从源码（上游 `main` 分支）构建的 OpenFic 桌面端，使用 nixpkgs 的 Electron，
-而非上游 electron-builder 预编译产物。跟踪上游 main 分支：`3991edf15320913776959d7575eff736a2080650`。
+而非上游 electron-builder 预编译产物。跟踪上游 main 分支：`a6e419ace227fb4ae69c7055b2ded09ffbe32c93`。
 
 姊妹包 `openfic` 用 bubblewrap FHS 环境包装上游发行 tarball；本包是纯源码
 构建，不提供 FHS 沙箱。**两者不要同时安装**——它们共用同一个 Electron 应用
