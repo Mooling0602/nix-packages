@@ -1,6 +1,7 @@
 {
   lib,
   bashInteractive,
+  bubblewrap,
   fetchFromGitHub,
   fetchPnpmDeps,
   fetchurl,
@@ -137,8 +138,13 @@ stdenv.mkDerivation (finalAttrs: {
       "$out/lib/${pname}/packages/terminal/terminal-bash/lib/index.js" \
       --replace-fail '"/bin/bash"' '"${lib.getExe bashInteractive}"'
 
+    # dsh-sandbox-local probes `bwrap` from PATH for its preferred Linux
+    # sandbox backend (chain: bwrap, then landlock); the landlock launcher's
+    # optional platform package is not materialized by the offline pnpm
+    # install, so bwrap is the only working backend here.
     makeWrapper "${nodejs_24}/bin/node" "$out/bin/dsh" \
       --argv0 dsh \
+      --prefix PATH : ${lib.makeBinPath [ bubblewrap ]} \
       --add-flags "--expose-internals" \
       --add-flags "$out/lib/${pname}/apps/cli/lib/bin.js"
 

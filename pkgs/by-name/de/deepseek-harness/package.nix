@@ -1,6 +1,7 @@
 {
   lib,
   bashInteractive,
+  bubblewrap,
   buildNpmPackage,
   fetchurl,
   makeWrapper,
@@ -46,8 +47,11 @@ buildNpmPackage {
       --replace-fail '"/bin/bash"' '"${lib.getExe bashInteractive}"'
 
     rm $out/bin/dsh
+    # dsh-sandbox-local probes `bwrap` from PATH for its preferred Linux
+    # sandbox backend (chain: bwrap, then landlock).
     makeWrapper ${lib.getExe nodejs} $out/bin/dsh \
       --argv0 dsh \
+      --prefix PATH : ${lib.makeBinPath [ bubblewrap ]} \
       --add-flags "--expose-internals" \
       --add-flags "$out/lib/node_modules/@deepseek-ai/dsh/lib/bin.js"
   '';
