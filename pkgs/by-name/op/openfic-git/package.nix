@@ -19,14 +19,14 @@ let
   # commit — desktop/package.json keeps its upstream version (currently
   # 0.10.1) because the app's local backend bootstrap requires a PyPI
   # `openfic` release matching app.getVersion().
-  rev = "a6e419ace227fb4ae69c7055b2ded09ffbe32c93";
-  version = "unstable-2026-08-28";
+  rev = "1ef8c091d3ca30f08bd90892515e46dd8368aa7b";
+  version = "unstable-2026-08-29";
 
   src = fetchFromGitHub {
     owner = "syrizelink";
     repo = "OpenFic";
     inherit rev;
-    hash = "sha256-eYULg0K4YDyA8DsCaYc0Fq2GklCmNNjTtTnk7TLpqlI=";
+    hash = "sha256-veIPTik8CMLCIm/MctoV7FwFVtPEV7m1XvWnwpBRIik=";
   };
 
   # Upstream maintains the lockfiles with pnpm 11.8 (desktop/package.json
