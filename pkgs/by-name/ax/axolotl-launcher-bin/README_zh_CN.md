@@ -4,7 +4,7 @@
 
 [Axolotl Launcher](https://github.com/Mystic-Stars/Axolotl)（美西螈启动器），一款基于 Modrinth 生态构建的自由跨平台 Minecraft 启动器，打包自官方 Linux `.deb`。
 
-当前版本：1.9.1。
+当前版本：1.9.4。
 
 ## FHS 环境
 
