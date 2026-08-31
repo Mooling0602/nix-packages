@@ -1,6 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# --- Optional GitHub authentication to avoid rate limiting ------------------
+# Export GITHUB_PAT (a GitHub personal access token) to authenticate GitHub
+# REST / raw requests and `git ls-remote`. GITHUB_TOKEN is honoured as fallback.
+gh_auth=()
+gh_git_auth=()
+if [ -n "${GITHUB_PAT:-}" ] || [ -n "${GITHUB_TOKEN:-}" ]; then
+  gh_token="${GITHUB_PAT:-${GITHUB_TOKEN:-}}"
+  gh_auth=(-H "Authorization: Bearer $gh_token")
+  gh_git_auth=(-c "http.extraHeader=Authorization: Bearer $gh_token")
+fi
+
 # Update script for the `deepseek-harness-git` (dsh, built from git release
 # tags) package.
 #
@@ -24,7 +35,7 @@ repo_url="https://github.com/deepseek-ai/deepseek-harness"
 latest_tag() {
   local tags
   tags="$(mktemp)"
-  git ls-remote --tags "$repo_url" 'refs/tags/dsh-v*' > "$tags"
+  git "${gh_git_auth[@]}" ls-remote --tags "$repo_url" 'refs/tags/dsh-v*' > "$tags"
   local best_tag
   best_tag="$(grep -v '\^{}$' "$tags" | awk '{print substr($2, 11)}' | sort -V | tail -1)"
   if [ -z "$best_tag" ]; then
@@ -41,7 +52,7 @@ latest_tag() {
 
 resolve_tag() {
   local want="$1" out rev
-  out="$(git ls-remote "$repo_url" "refs/tags/dsh-v$want^{}" "refs/tags/dsh-v$want" || true)"
+  out="$(git "${gh_git_auth[@]}" ls-remote "$repo_url" "refs/tags/dsh-v$want^{}" "refs/tags/dsh-v$want" || true)"
   rev="$(printf '%s\n' "$out" | awk '$2 ~ /\^/ { print $1; exit }')"
   [ -n "$rev" ] || rev="$(printf '%s\n' "$out" | awk '$2 !~ /\^/ { print $1; exit }')"
   [ -n "$rev" ] || return 1
@@ -131,7 +142,7 @@ fi
 
 # --- 3. refresh the pinned pnpm when upstream bumps packageManager ---
 pnpm_version="$(sed -n 's/.*"pnpmVersion": *"\([^"]*\)".*/\1/p' "$hashes_json")"
-upstream_pnpm="$(curl -fsSL "https://raw.githubusercontent.com/deepseek-ai/deepseek-harness/$rev/package.json" \
+upstream_pnpm="$(curl -fsSL "${gh_auth[@]}" "https://raw.githubusercontent.com/deepseek-ai/deepseek-harness/$rev/package.json" \
     | sed -n 's/.*"packageManager": *"pnpm@\([^"]*\)".*/\1/p')"
 if [ -z "$upstream_pnpm" ]; then
   echo "Error: could not read packageManager from upstream package.json" >&2

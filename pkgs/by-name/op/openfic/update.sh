@@ -1,6 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# --- Optional GitHub API authentication to avoid rate limiting --------------
+# Export GITHUB_PAT (a GitHub personal access token) to authenticate GitHub
+# REST / raw requests. GITHUB_TOKEN is honoured as a fallback.
+gh_auth=()
+if [ -n "${GITHUB_PAT:-}" ] || [ -n "${GITHUB_TOKEN:-}" ]; then
+  gh_auth=(-H "Authorization: Bearer ${GITHUB_PAT:-${GITHUB_TOKEN:-}}")
+fi
+
 usage() {
   echo "Usage: $(basename "$0") [version]" >&2
   echo "       $(basename "$0") -f|--force <version>" >&2
@@ -12,7 +20,7 @@ latest_version() {
   local tag version
 
   if ! tag="$(
-    curl -fsSL "https://api.github.com/repos/syrizelink/OpenFic/releases/latest" \
+    curl -fsSL "${gh_auth[@]}" "https://api.github.com/repos/syrizelink/OpenFic/releases/latest" \
       | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p' | head -n1
   )"; then
     echo "Error: failed to fetch latest OpenFic release from GitHub API" >&2

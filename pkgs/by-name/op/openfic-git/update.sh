@@ -8,6 +8,14 @@
 #   4. version strings in both READMEs
 set -euo pipefail
 
+# --- Optional GitHub API authentication to avoid rate limiting --------------
+# Export GITHUB_PAT (a GitHub personal access token) to authenticate GitHub
+# REST / raw requests. GITHUB_TOKEN is honoured as a fallback.
+gh_auth=()
+if [ -n "${GITHUB_PAT:-}" ] || [ -n "${GITHUB_TOKEN:-}" ]; then
+  gh_auth=(-H "Authorization: Bearer ${GITHUB_PAT:-${GITHUB_TOKEN:-}}")
+fi
+
 repo_api="https://api.github.com/repos/syrizelink/OpenFic"
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 package_nix="$script_dir/package.nix"
@@ -19,7 +27,7 @@ die() { echo "Error: $*" >&2; exit 1; }
 
 # --- 1. Resolve the latest main HEAD commit ---------------------------------
 
-head_json="$(curl -fsSL "$repo_api/commits/main")" || die "failed to fetch main HEAD"
+head_json="$(curl -fsSL "${gh_auth[@]}" "$repo_api/commits/main")" || die "failed to fetch main HEAD"
 new_rev="$(printf '%s' "$head_json" | sed -n 's/.*"sha": *"\([0-9a-f]\{40\}\)".*/\1/p' | head -n1)"
 commit_date="$(printf '%s' "$head_json" | sed -n 's/.*"date": *"\([0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}\)T[^"]*".*/\1/p' | head -n1)"
 
@@ -28,7 +36,7 @@ commit_date="$(printf '%s' "$head_json" | sed -n 's/.*"date": *"\([0-9]\{4\}-[0-
 
 # --- 2. Read pinned tooling from desktop/package.json at that commit ---------
 
-pkg_json="$(curl -fsSL "https://raw.githubusercontent.com/syrizelink/OpenFic/$new_rev/desktop/package.json")" \
+pkg_json="$(curl -fsSL "${gh_auth[@]}" "https://raw.githubusercontent.com/syrizelink/OpenFic/$new_rev/desktop/package.json")" \
   || die "failed to fetch desktop/package.json at $new_rev"
 app_version="$(printf '%s' "$pkg_json" | sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' | head -n1)"
 pnpm_version="$(printf '%s' "$pkg_json" | sed -n 's/.*"packageManager": *"pnpm@\([^"]*\)".*/\1/p' | head -n1)"

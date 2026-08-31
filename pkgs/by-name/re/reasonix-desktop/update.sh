@@ -1,6 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# --- Optional GitHub API authentication to avoid rate limiting --------------
+# Export GITHUB_PAT (a GitHub personal access token) to authenticate GitHub
+# REST / raw requests. GITHUB_TOKEN is honoured as a fallback.
+gh_auth=()
+if [ -n "${GITHUB_PAT:-}" ] || [ -n "${GITHUB_TOKEN:-}" ]; then
+  gh_auth=(-H "Authorization: Bearer ${GITHUB_PAT:-${GITHUB_TOKEN:-}}")
+fi
+
 usage() {
   echo "Usage: $(basename "$0") [version]" >&2
   echo "       $(basename "$0") -f|--force <version>" >&2
@@ -10,7 +18,7 @@ force=false
 
 latest_version() {
   local tag
-  tag="$(curl -fsSL "https://api.github.com/repos/esengine/DeepSeek-Reasonix/releases/latest" \
+  tag="$(curl -fsSL "${gh_auth[@]}" "https://api.github.com/repos/esengine/DeepSeek-Reasonix/releases/latest" \
     | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p')"
 
   case "$tag" in
