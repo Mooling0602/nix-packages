@@ -51,8 +51,11 @@ current_rev="$(sed -n 's/^[[:space:]]*rev = "\([0-9a-f]\{40\}\)";/\1/p' "$packag
 new_version="unstable-$commit_date"
 
 update_readme_versions() {
-  sed -i -E "s|Following upstream main at \`[^\`]+\`\.|Following upstream main at \`$new_rev\`.|" "$readme"
-  sed -i -E "s|跟踪上游 main 分支：\`[^\`]+\`。|跟踪上游 main 分支：\`$new_rev\`。|" "$readme_zh"
+  # Replace the upstream commit SHA referenced in both READMEs (wrapped in
+  # backticks). The English sentence may be wrapped across two lines, so a
+  # line-based `sed` on that phrase can silently miss it; match the 40-hex SHA
+  # itself instead — cross-line-safe and works for both languages.
+  perl -pi -e 's/`[0-9a-f]{40}`/`'"$new_rev"'`/g' "$readme" "$readme_zh"
 }
 
 if [ "$current_rev" = "$new_rev" ]; then
