@@ -27,7 +27,7 @@ Side effects of the FHS approach:
 
 ## Maintenance notes
 
-Current version: 0.10.2. Upstream releases use the `v<version>` tag, and the
+Current version: 0.11.0. Upstream releases use the `v<version>` tag, and the
 Linux x86_64 asset is named:
 
 ```sh

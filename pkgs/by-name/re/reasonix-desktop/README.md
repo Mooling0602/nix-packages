@@ -6,7 +6,7 @@
 
 ## Maintenance notes
 
-Current version: 1.33.0. Desktop releases use the `desktop-v<version>` tag,
+Current version: 1.34.0. Desktop releases use the `desktop-v<version>` tag,
 and the Linux asset is named:
 
 ```sh
