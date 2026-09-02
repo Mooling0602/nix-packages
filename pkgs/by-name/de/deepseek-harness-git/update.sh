@@ -135,7 +135,10 @@ echo "rev: $rev"
 
 # --- 2. prefetch the tag tarball for srcHash ---
 echo "Prefetching source tarball hash..."
-src_hash="$(nix --extra-experimental-features 'nix-command flakes' store prefetch-file --json \
+# --unpack: package.nix fetches the source via fetchFromGitHub, which hashes the
+# UNPACKED source tree (a nar hash), not the raw tar.gz bytes. Without
+# --unpack the prefetched hash would never match the build.
+src_hash="$(nix --extra-experimental-features 'nix-command flakes' store prefetch-file --unpack --json \
     "https://codeload.github.com/deepseek-ai/deepseek-harness/tar.gz/$rev" \
     | sed -n 's/.*"hash": *"\([^"]*\)".*/\1/p')"
 if [ -z "$src_hash" ]; then
@@ -188,30 +191,58 @@ echo "(pnpmDepsHash is currently a dummy; if this fails or you prefer, run manua
 echo "  cd '$repo_root' && nix build '.#deepseek-harness-git'"
 echo
 
-# --- 5. build once with the dummy hash to harvest the real pnpmDepsHash ---
+# --- 5. build to harvest the real fixed-output hashes -----------------------
+# Any stale hash (srcHash / pnpmDepsHash / pnpmHash) fails the build with a
+# fixed-output hash mismatch that also reports the correct "got:" value.
+# Retry the build, mapping each mismatch back onto the hashes.json field that
+# produced it (by derivation name), until the build succeeds.
 build_log="$work/build.log"
-if nix --extra-experimental-features 'nix-command flakes' build \
-    "path:$repo_root#deepseek-harness-git" 2>"$build_log"; then
-  echo "Build succeeded with the dummy hash (unexpected); pnpmDepsHash left as-is."
-  exit 0
-fi
-
-got="$(grep -oE 'got:[[:space:]]*sha256-[A-Za-z0-9+/=]+' "$build_log" | head -1 | sed 's/.*sha256-/sha256-/')"
-if [ -n "$got" ]; then
-  sed -i -E "s|\"pnpmDepsHash\": \"[^\"]*\"|\"pnpmDepsHash\": \"$got\"|" "$hashes_json"
-  echo "pnpmDepsHash: $got"
-  echo "Verifying the final build..."
+attempt=0
+max_attempts=4
+while :; do
+  attempt=$((attempt + 1))
   if nix --extra-experimental-features 'nix-command flakes' build \
-      "path:$repo_root#deepseek-harness-git" -o "$work/result" 2>>"$build_log"; then
+      "path:$repo_root#deepseek-harness-git" -o "$work/result" 2>"$build_log"; then
     echo "deepseek-harness-git fully updated to $version."
-  else
-    echo "Final build failed; see log below." >&2
+    exit 0
+  fi
+
+  mismatch="$(awk '
+    /hash mismatch in fixed-output derivation/ {
+      drv = $NF
+      getline specified
+      getline got
+      sub(/.*\//, "", drv)
+      gsub(/[^A-Za-z0-9._-]/, "", drv)
+      sub(/^.*got:[[:space:]]*/, "", got)
+      print drv " " got
+      exit
+    }' "$build_log")"
+
+  if [ -z "$mismatch" ]; then
+    echo "Build failed for a non-hash reason; see log below." >&2
     tail -30 "$build_log" >&2
     exit 1
   fi
-else
-  echo "Could not harvest pnpmDepsHash automatically. Build output below." >&2
-  echo "Fix the 'got:' hash or run the manual command above and paste the value into hashes.json." >&2
-  sed -n '/error: hash mismatch/,$p' "$build_log" >&2
-  exit 1
-fi
+
+  drv="${mismatch%% *}"
+  got="${mismatch##* }"
+  field=
+  case "$drv" in
+    *source.drv) field=srcHash ;;
+    *pnpm-deps.drv) field=pnpmDepsHash ;;
+    *.tgz.drv) field=pnpmHash ;;
+  esac
+  if [ -z "$field" ]; then
+    echo "Unexpected fixed-output hash mismatch in '$drv'; see log below." >&2
+    tail -30 "$build_log" >&2
+    exit 1
+  fi
+  if [ "$attempt" -ge "$max_attempts" ]; then
+    echo "Still failing after $max_attempts build attempts; see log below." >&2
+    tail -30 "$build_log" >&2
+    exit 1
+  fi
+  echo "$field: $got (harvested from build attempt #$attempt)"
+  sed -i -E "s|\"$field\": \"[^\"]*\"|\"$field\": \"$got\"|" "$hashes_json"
+done

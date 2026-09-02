@@ -18,7 +18,10 @@ let
 
   # package-lock.json (maintained in this directory via update.sh) is injected
   # into the npm tarball source so buildNpmPackage resolves the exact tree.
-  src = runCommand "${pname}-source" { } ''
+  # The lockfile covers production dependencies only (dsh lists unreleased
+  # workspace packages among its devDependencies), so devDependencies is
+  # stripped from the manifest to keep `npm ci` in sync.
+  src = runCommand "${pname}-source" { nativeBuildInputs = [ nodejs ]; } ''
     mkdir -p $out
     tar -xzf ${
       fetchurl {
@@ -27,6 +30,7 @@ let
       }
     } -C $out --strip-components=1
     cp ${./package-lock.json} $out/package-lock.json
+    node -e 'const fs=require("fs");const f=process.argv[1];const p=JSON.parse(fs.readFileSync(f));delete p.devDependencies;fs.writeFileSync(f,JSON.stringify(p,null,2)+"\n")' $out/package.json
   '';
 
 in

@@ -19,47 +19,63 @@ set -euo pipefail
 usage() {
   echo "Usage: $(basename "$0") [version]" >&2
   echo "       $(basename "$0") -f|--force <version>" >&2
+  echo "       $(basename "$0") -t|--tag <npm-dist-tag> [-f|--force]" >&2
 }
 
 force=false
+tag_given=false
+dist_tag=latest
+version=''
 
 latest_version() {
-  curl -fsSL "https://registry.npmjs.org/@deepseek-ai%2fdsh/latest" \
+  curl -fsSL "https://registry.npmjs.org/@deepseek-ai%2fdsh/$dist_tag" \
     | sed -n 's/.*"version": *"\([^"]*\)".*/\1/p'
 }
 
-case "$#" in
-  0)
-    version="$(latest_version)"
-    ;;
-  1)
-    case "$1" in
-      -f|--force)
-        usage
-        exit 1
-        ;;
-      *)
-        version="$1"
-        ;;
-    esac
-    ;;
-  2)
-    case "$1" in
-      -f|--force)
-        force=true
-        version="$2"
-        ;;
-      *)
-        usage
-        exit 1
-        ;;
-    esac
-    ;;
-  *)
-    usage
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -f|--force)
+      force=true
+      ;;
+    -t|--tag)
+      [ -n "${2:-}" ] || { usage; exit 1; }
+      tag_given=true
+      dist_tag="$2"
+      shift
+      ;;
+    -*)
+      usage
+      exit 1
+      ;;
+    *)
+      [ -z "$version" ] || { usage; exit 1; }
+      version="$1"
+      ;;
+  esac
+  shift
+done
+
+if [ "$tag_given" = true ] && [ -n "$version" ]; then
+  echo "Error: -t <tag> cannot be combined with an explicit version" >&2
+  exit 1
+fi
+if [ "$force" = true ] && [ "$tag_given" = false ] && [ -z "$version" ]; then
+  usage
+  exit 1
+fi
+case "$dist_tag" in
+  ''|*[!0-9A-Za-z._-]*)
+    echo "Error: tag must only contain letters, numbers, dots, underscores, or hyphens" >&2
     exit 1
     ;;
 esac
+if [ -z "$version" ]; then
+  version="$(latest_version)" || true
+  if [ -z "$version" ]; then
+    echo "Error: failed to resolve npm dist-tag '$dist_tag' on registry.npmjs.org" >&2
+    exit 1
+  fi
+fi
 
 case "$version" in
   ''|*[!0-9A-Za-z._-]*)
@@ -109,6 +125,14 @@ curl -fsSL "$src_url" -o "$work/dsh.tgz"
 tar -xzf "$work/dsh.tgz" -C "$work/pkg" --strip-components=1
 (
   cd "$work/pkg"
+  # Resolve the lockfile for production dependencies only: dsh lists
+  # unreleased workspace packages among its devDependencies (e.g.
+  # @deepseek-ai/dsh-experimental-agent-team in 0.1.2-alpha.5 was never
+  # published to npm), which makes `npm install --package-lock-only` fail
+  # with E404. The build (dontNpmBuild = true) never needs devDependencies;
+  # package.nix strips them from the source manifest to keep `npm ci` in
+  # sync with this lockfile.
+  node -e 'const fs=require("fs");const p=JSON.parse(fs.readFileSync("package.json"));delete p.devDependencies;fs.writeFileSync("package.json",JSON.stringify(p,null,2)+"\n")'
   npm install --package-lock-only --ignore-scripts --no-audit --no-fund \
     --cache "$work/npmcache"
 )

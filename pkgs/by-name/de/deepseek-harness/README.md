@@ -6,7 +6,7 @@
 agent harness and CLI — packaged from the official npm tarball with a pinned
 dependency lockfile.
 
-Current version: 0.1.1-rc.2.
+Current version: 0.1.2-alpha.5.
 
 The package is built with `buildNpmPackage`: it pulls the `@deepseek-ai/dsh`
 tarball, injects the vendored `package-lock.json`, and produces the `dsh`
@@ -22,6 +22,13 @@ To update to a specific version:
 
 ```bash
 ./update.sh 0.1.0-rc.6
+```
+
+To update to whatever an npm dist-tag (e.g. `latest`, `next`, `alpha`) points
+to:
+
+```bash
+./update.sh -t alpha
 ```
 
 The update script regenerates `package-lock.json`, prefetches the new
