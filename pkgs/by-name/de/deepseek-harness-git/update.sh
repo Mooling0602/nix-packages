@@ -9,7 +9,10 @@ gh_git_auth=()
 if [ -n "${GITHUB_PAT:-}" ] || [ -n "${GITHUB_TOKEN:-}" ]; then
   gh_token="${GITHUB_PAT:-${GITHUB_TOKEN:-}}"
   gh_auth=(-H "Authorization: Bearer $gh_token")
-  gh_git_auth=(-c "http.extraHeader=Authorization: Bearer $gh_token")
+  # GitHub's git smart-HTTP endpoint (info/refs) rejects "Authorization: Bearer"
+  # with 401 even for a valid PAT; it only accepts Basic auth with the PAT as
+  # the password. Scope the header to github.com so it is never sent elsewhere.
+  gh_git_auth=(-c "http.https://github.com/.extraHeader=Authorization: Basic $(printf 'x-access-token:%s' "$gh_token" | base64 | tr -d '\n')")
 fi
 
 # Update script for the `deepseek-harness-git` (dsh, built from git release
