@@ -8,7 +8,7 @@ Unlike [deepseek-harness](../deepseek-harness) (npm tarball), this package
 tracks the `dsh-v*` tags, so it can ship pre-releases that never reach npm
 (e.g. `0.1.2-alpha.1`).
 
-Current version: 0.1.2-alpha.5.
+Current version: 0.1.2-rc.1.
 
 The build mirrors the upstream release workflow: the pinned-pnpm offline store
 from `fetchPnpmDeps`, then `pnpm run build:official` (tsc + tsdown for the
