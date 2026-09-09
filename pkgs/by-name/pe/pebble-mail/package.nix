@@ -41,11 +41,11 @@ in
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "pebble-mail";
-  version = "0.1.4";
+  version = "0.1.5";
 
   src = fetchurl {
     url = "https://github.com/QingJ01/Pebble/releases/download/v${finalAttrs.version}/Pebble_${finalAttrs.version}_amd64.deb";
-    hash = "sha256-wqouEy1OIMY+JoBwJ8fgaYbr5wCJMMoo+O9Zf+6KpSA=";
+    hash = "sha256-GNvLp6hUoc89gwpO2YHJNtSKkS0EOeRZR4cnzdebfO0=";
   };
 
   nativeBuildInputs = [

@@ -5,7 +5,7 @@
 [Pebble](https://github.com/QingJ01/Pebble), a local-first desktop email client built with Rust, Tauri,
 and React, packaged from the official Linux `.deb`.
 
-Current version: 0.1.4.
+Current version: 0.1.5.
 
 The Nix attribute is named `pebble-mail` to avoid clashing with nixpkgs'
 existing `pebble` (Let's Encrypt's ACME test server). The installed payload is

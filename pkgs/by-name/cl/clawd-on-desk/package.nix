@@ -42,7 +42,7 @@
 }:
 
 let
-  version = "0.16.0";
+  version = "1.0.0";
 in
 stdenv.mkDerivation {
   pname = "clawd-on-desk";
@@ -50,7 +50,7 @@ stdenv.mkDerivation {
 
   src = fetchurl {
     url = "https://github.com/rullerzhou-afk/clawd-on-desk/releases/download/v${version}/Clawd-on-Desk-${version}-amd64.deb";
-    hash = "sha256-eDqPO1GK8zvXHtjPM516CAZwzCJqc2oC5Yh+7TBBidg=";
+    hash = "sha256-pvbgF/CVxkJHNZy428spfHWfUQEZOokWRT/uXpxGNDk=";
   };
 
   nativeBuildInputs = [
