@@ -2,7 +2,7 @@
 
 OpenFic desktop app built from source (upstream `main` branch), packaged with
 nixpkgs Electron instead of the prebuilt electron-builder tarball. Following
-upstream main at `6d8ab175ad9f7ec5c27eb21e9c31da927d953788`.
+upstream main at `fd62cb4942f8f6a080a8421de1ea121ef9fee7fb`.
 
 The sibling `openfic` package wraps the upstream release tarball in a bubblewrap
 FHS environment; this one is a plain source build with no FHS sandbox. Do not
