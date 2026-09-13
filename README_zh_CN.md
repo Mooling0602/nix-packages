@@ -34,6 +34,7 @@ Mooling0602 的 [NUR](https://github.com/nix-community/NUR) 软件仓库，由 �
 | [`clawd-on-desk`](pkgs/by-name/cl/clawd-on-desk/README.md) | 桌面伴侣宠物，能实时响应 AI 编程助手会话（仅 x86_64-linux） |
 | [`deepseek-harness`](pkgs/by-name/de/deepseek-harness/README.md) | DeepSeek Harness（`dsh`），一个开源的 agent harness 与 CLI，来自官方 npm 发行版 |
 | [`deepseek-harness-git`](pkgs/by-name/de/deepseek-harness-git/README.md) | DeepSeek Harness（`dsh`），一个开源的 agent harness 与 CLI，来自官方 GitHub 仓库源码 |
+| [`niri-input-portal`](pkgs/by-name/ni/niri-input-portal/README.md) | 面向 niri 的 xdg-desktop-portal InputCapture 后端，让 Deskflow 类 KVM 软件能把本机键鼠与剪贴板共享给另一台电脑（MIT，Linux） |
 | [`openfic`](pkgs/by-name/op/openfic/README.md) | OpenFic，专为小说创作打造的 AI Native 写作工具，来自官方 tar.gz 发布产物（Apache-2.0，仅 x86_64-linux） |
 | [`openfic-git`](pkgs/by-name/op/openfic-git/README.md) | OpenFic 桌面端，从上游 `main` 源码构建，使用 nixpkgs Electron，无 FHS 沙箱（Apache-2.0，仅 x86_64-linux，需 nix-ld） |
 | [`pebble-mail`](pkgs/by-name/pe/pebble-mail/README.md) | Pebble，一款本地优先的桌面邮件客户端，来自官方 `.deb`（AGPL-3.0，仅 x86_64-linux） |
