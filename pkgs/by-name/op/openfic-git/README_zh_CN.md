@@ -1,5 +1,7 @@
 # openfic-git
 
+> 中文（简体） · [English](README.md)
+
 从源码（上游 `main` 分支）构建的 OpenFic 桌面端，使用 nixpkgs 的 Electron，
 而非上游 electron-builder 预编译产物。跟踪上游 main 分支：`284cf6bf0c5c98f6ed36ae38db9f7f5225d62b87`。
 

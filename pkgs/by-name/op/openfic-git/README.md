@@ -1,5 +1,7 @@
 # openfic-git
 
+> English · [中文（简体）](README_zh_CN.md)
+
 OpenFic desktop app built from source (upstream `main` branch), packaged with
 nixpkgs Electron instead of the prebuilt electron-builder tarball. Following
 upstream main at `284cf6bf0c5c98f6ed36ae38db9f7f5225d62b87`.
