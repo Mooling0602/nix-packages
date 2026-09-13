@@ -81,9 +81,9 @@ rustPlatform.buildRustPackage {
     description = "xdg-desktop-portal InputCapture backend for the niri compositor";
     longDescription = ''
       Implements org.freedesktop.impl.portal.InputCapture on top of Wayland
-      protocols niri supports, so KVM software that speaks the input-capture
-      portal (Synergy 3, Deskflow, Input Leap) can share this machine's
-      keyboard, mouse and clipboard with another computer.
+      protocols niri supports, so keyboard and mouse sharing software that
+      speaks the input-capture portal (Synergy 3, Deskflow, Input Leap) can
+      share this machine's keyboard, mouse and clipboard with another computer.
     '';
     homepage = "https://github.com/Qingswe/niri-input-portal";
     license = lib.licenses.mit;

@@ -2,17 +2,20 @@
 
 > English · [中文（简体）](README_zh_CN.md)
 
-An `org.freedesktop.impl.portal.InputCapture` backend for the
-[niri](https://github.com/YaLTeR/niri) compositor, so KVM software that speaks
-the input-capture portal (Deskflow, Synergy 3, Input Leap) can act as a
-**server** under niri — sharing this machine's keyboard, mouse and clipboard
-with another computer. Tracked from upstream `main` at
-`f363e34380b3f8bd9ffc9a167b7b58d3c208574b` (MIT).
+This package builds
+[niri-input-portal](https://github.com/Qingswe/niri-input-portal), an
+`org.freedesktop.impl.portal.InputCapture` backend for the
+[niri](https://github.com/YaLTeR/niri) compositor, so keyboard and mouse
+sharing software that speaks the input-capture portal (Deskflow, Synergy 3,
+Input Leap) can act as a **server** under niri — sharing this machine's
+keyboard, mouse and clipboard with another computer. Pinned to upstream `main`
+at `f363e34380b3f8bd9ffc9a167b7b58d3c208574b` and built from source with one
+local patch (MIT); see [Upstream and licensing](#upstream-and-licensing).
 
 niri exposes `Mutter.ScreenCast`, `Mutter.DisplayConfig` and
 `Mutter.ServiceChannel`, but not `Mutter.InputCapture`, so
 `xdg-desktop-portal-gnome` never publishes the interface and every
-`CreateSession` from a KVM client fails with
+`CreateSession` from such a client fails with
 `failed to initialize input capture session`. Upstream tracks this in
 [niri#823](https://github.com/YaLTeR/niri/issues/823) (open since 2024-11);
 this backend fills the gap through protocols niri does support
@@ -126,6 +129,28 @@ the capture:
 - Claiming the clipboard discards whatever was on it, and releasing it does
   not restore the previous content. The primary selection is not shared.
 - Rearming while the pointer already rests on a barrier captures immediately.
+
+## Upstream and licensing
+
+This package is a third-party rebuild, not an upstream release, and it is not
+affiliated with the upstream author. Source:
+[Qingswe/niri-input-portal](https://github.com/Qingswe/niri-input-portal), MIT,
+Copyright © 2026 Qingswe.
+
+Upstream publishes neither tags nor binaries, so nothing here repackages a
+project-provided artifact — `package.nix` fetches the pinned commit and builds
+it from source. The local patch is a derivative of that source and stays under
+the same MIT terms, so `meta.license` remains `lib.licenses.mit`; upstream's
+`LICENSE` file is part of that source and its copyright notice is left
+untouched. Nothing is copied to `share/licenses`, matching the rest of this
+repository.
+
+The patch is the only change to upstream's code; the rest of the packaging only
+rewrites hardcoded `/usr` paths. That distinction matters when reading this
+file: the region report described under [Package patches](#package-patches), and
+the working bottom and right edges that follow from it, are this package's
+behaviour rather than upstream's. Do not expect them from a plain upstream
+build, or report them upstream.
 
 ## Package patches
 

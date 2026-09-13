@@ -2,15 +2,17 @@
 
 > 中文（简体） · [English](README.md)
 
-面向 [niri](https://github.com/YaLTeR/niri) 合成器的
+本包构建 [niri-input-portal](https://github.com/Qingswe/niri-input-portal)：
+一个面向 [niri](https://github.com/YaLTeR/niri) 合成器的
 `org.freedesktop.impl.portal.InputCapture` 后端，让支持 input-capture portal
-的 KVM 软件（Deskflow、Synergy 3、Input Leap）能在 niri 下充当 **server**，
-把这台机器的键盘、鼠标与剪贴板共享给另一台电脑。跟踪上游 `main` 分支：
-`f363e34380b3f8bd9ffc9a167b7b58d3c208574b`（MIT）。
+的键鼠共享软件（Deskflow、Synergy 3、Input Leap）能在 niri 下充当 **server**，
+把这台机器的键盘、鼠标与剪贴板共享给另一台电脑。固定在上游 `main` 分支的
+`f363e34380b3f8bd9ffc9a167b7b58d3c208574b`，从源码构建并附带一个本地补丁
+（MIT）；详见[上游与许可](#上游与许可)。
 
 niri 暴露了 `Mutter.ScreenCast`、`Mutter.DisplayConfig` 与
 `Mutter.ServiceChannel`，但没有 `Mutter.InputCapture`，因此
-`xdg-desktop-portal-gnome` 永远不会发布该接口，KVM 客户端的每次
+`xdg-desktop-portal-gnome` 永远不会发布该接口，这类客户端的每次
 `CreateSession` 都会以 `failed to initialize input capture session` 失败。
 上游在 [niri#823](https://github.com/YaLTeR/niri/issues/823) 跟踪此事
 （自 2024-11 起仍 open）；本后端用 niri 确实支持的协议（`wlr-layer-shell`、
@@ -112,6 +114,23 @@ Mod+Shift+Escape allow-inhibiting=false { spawn "niri-input-portal" "--release";
 - 未实现会话持久化：请求 `persist_mode` 的客户端每次都会拿到新会话。
 - 认领剪贴板会丢弃其原有内容，释放时也不会恢复；不共享 primary selection。
 - 若指针已停在边界上时重新布防，会立即触发捕获。
+
+## 上游与许可
+
+本包是第三方重新构建，不是上游发行版，与上游作者无隶属关系。源仓库：
+[Qingswe/niri-input-portal](https://github.com/Qingswe/niri-input-portal)，
+MIT 许可，Copyright © 2026 Qingswe。
+
+上游既没有 tag 也没有二进制产物，因此这里不包含任何"重新打包官方构建"的
+成分——`package.nix` 拉取固定的那个提交并从源码构建。本地补丁是上游源码的
+衍生作品，沿用同一套 MIT 条款，因此 `meta.license` 保持
+`lib.licenses.mit`；上游的 `LICENSE` 本来就在这份源码里，版权声明原样保留，
+不额外复制到 `share/licenses`，与本仓库其它包一致。
+
+该补丁是上游代码唯一的改动，打包的其余部分只改写硬编码的 `/usr` 路径。这一
+区分在阅读本文件时很重要：[打包补丁](#打包补丁) 所述的 region 上报，以及由此
+才可用的下边缘与右边缘，都属于本包的行为而非上游的行为。不要指望未打补丁的
+上游构建具备它们，也不要把它们当作 bug 报给上游。
 
 ## 打包补丁
 
