@@ -113,6 +113,27 @@ Mod+Shift+Escape allow-inhibiting=false { spawn "niri-input-portal" "--release";
 - 认领剪贴板会丢弃其原有内容，释放时也不会恢复；不共享 primary selection。
 - 若指针已停在边界上时重新布防，会立即触发捕获。
 
+## 打包补丁
+
+`fix-eis-device-region.patch` 让后端在 EIS 设备上报告 `ei_device.region`。
+
+上游从不发送 region，而这是 libei 客户端唯一能用来确定"本机屏幕"尺寸的信息。
+缺失时 Deskflow 退回 1×1 的屏幕模型：每次捕获激活的光标位置都被压到 `(0, 0)`，
+于是只有**上边缘**能被离开——客户端配在下方或右侧时指针永远切不过去。
+Deskflow core 的 stderr 会直白印出这个症状：
+
+```
+WARNING: on switch, y (11) exceeds the bottom boundary (dy + height = 1)
+```
+
+region 必须**随设备一起**、在 `ei_device.done` 之前发出：libei 在构建 device 时读取它，
+之后不会再回看（协议里根本没有 region 事件），所以晚发的 region 等同于没发。因此补丁
+在 `ConnectToEIS` 时先取一次输出布局，把并集交给 EIS 会话，在创建每个 device 的回调里
+下发。
+
+上游补上 region 上报后即可删除此补丁；移除条件与复查方法记在 nixos-config 的
+`MAINTENANCE.md`。
+
 ## 更新
 
 ```sh

@@ -127,6 +127,30 @@ the capture:
   not restore the previous content. The primary selection is not shared.
 - Rearming while the pointer already rests on a barrier captures immediately.
 
+## Package patches
+
+`fix-eis-device-region.patch` makes the backend report an `ei_device.region`.
+
+Upstream never sends one, and it is the only thing a libei client has to size
+"this screen" with. Without it Deskflow falls back to a 1×1 screen: the cursor
+position of every activation collapses onto `(0, 0)`, which leaves the **top
+edge** as the only one it can ever release the pointer towards. A client placed
+below or to the right of this machine is then unreachable. Deskflow core prints
+the symptom outright on stderr:
+
+```
+WARNING: on switch, y (11) exceeds the bottom boundary (dy + height = 1)
+```
+
+The region has to go out **with the device**, before `ei_device.done`: libei reads
+it while building the device and never looks again — the protocol has no region
+event at all — so a region sent later is the same as none. The patch therefore
+reads the output layout once on `ConnectToEIS`, hands the union to the EIS
+session, and reports it from the callback that builds each device.
+
+Drop the patch once upstream reports a region; the removal condition and the
+way to recheck it live in `MAINTENANCE.md` in nixos-config.
+
 ## Update
 
 ```sh

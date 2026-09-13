@@ -1,0 +1,172 @@
+diff --git a/src/eis_server.rs b/src/eis_server.rs
+index 7c31032..23d6893 100644
+--- a/src/eis_server.rs
++++ b/src/eis_server.rs
+@@ -43,6 +43,19 @@ pub enum EisCommand {
+     Frame,
+ }
+ 
++/// Logical area the emulated devices cover, in niri's coordinate space.
++///
++/// A libei client reads `ei_device.region` while it builds the device for
++/// `EI_EVENT_DEVICE_ADDED` and never revisits it — there is no region event —
++/// so a region arriving after `ei_device.done` is silently ignored. Without one
++/// Deskflow keeps its 1x1 fallback: every activation collapses onto (0, 0) and
++/// only the top edge stays reachable.
++#[derive(Debug, Clone, Copy)]
++pub struct Region {
++    pub width: u32,
++    pub height: u32,
++}
++
+ /// Send handle for an EIS connection.
+ #[derive(Debug, Clone)]
+ pub struct EisHandle {
+@@ -188,17 +201,21 @@ pub type SharedKeymap = Arc<RwLock<Option<String>>>;
+ /// `closed_tx` receives the session label when the connection dies for any
+ /// reason. A capture must never outlive the connection it feeds — that is how
+ /// the pointer ends up locked with nothing able to release it.
++///
++/// `region` is the geometry the client will size this screen with. It has to be
++/// known here rather than sent later: see [`Region`].
+ pub fn spawn(
+     socket: UnixStream,
+     label: String,
+     keymap: SharedKeymap,
+     closed_tx: mpsc::UnboundedSender<String>,
++    region: Option<Region>,
+ ) -> Result<EisHandle> {
+     let context = eis::Context::new(socket).context("failed to create EIS context")?;
+     let (tx, rx) = mpsc::unbounded_channel();
+ 
+     tokio::spawn(async move {
+-        if let Err(err) = run(context, rx, &label, &keymap).await {
++        if let Err(err) = run(context, rx, &label, &keymap, region).await {
+             warn!(session = %label, "EIS connection ended: {err:#}");
+         } else {
+             info!(session = %label, "EIS connection closed");
+@@ -231,6 +248,7 @@ async fn run(
+     mut rx: mpsc::UnboundedReceiver<EisCommand>,
+     label: &str,
+     keymap: &SharedKeymap,
++    region: Option<Region>,
+ ) -> Result<()> {
+     let started = Instant::now();
+     let async_fd = AsyncFd::with_interest(context.clone(), tokio::io::Interest::READABLE)
+@@ -280,6 +298,7 @@ async fn run(
+                             &mut sequence,
+                             label,
+                             keymap,
++                            region,
+                         )? {
+                             return Ok(());
+                         }
+@@ -348,6 +367,7 @@ fn drive_requests(
+     sequence: &mut u32,
+     label: &str,
+     keymap: &SharedKeymap,
++    region: Option<Region>,
+ ) -> Result<bool> {
+     while let Some(result) = context.pending_request() {
+         let request = match result {
+@@ -380,6 +400,7 @@ fn drive_requests(
+                             conn,
+                             sequence,
+                             None,
++                            region,
+                         ));
+                     }
+                     if devices.keyboard.is_none() && caps.contains(DeviceCapability::Keyboard) {
+@@ -391,6 +412,7 @@ fn drive_requests(
+                             conn,
+                             sequence,
+                             map.as_deref(),
++                            region,
+                         ));
+                     }
+                 }
+@@ -408,12 +430,25 @@ fn add_device(
+     conn: &Connection,
+     sequence: &mut u32,
+     keymap: Option<&str>,
++    region: Option<Region>,
+ ) -> reis::request::Device {
+     let device = seat.add_device(Some(name), DeviceType::Virtual, capabilities, |dev| {
+-        // The keymap has to go out before ei_device.done, which is exactly what
+-        // this callback is for. Without it deskflow logs "does not have a
+-        // keymap, we are guessing" and assumes a US layout, mistranslating every
+-        // non-US keycode on the remote screen.
++        // Both of these have to go out before ei_device.done, which is exactly
++        // what this callback is for.
++        //
++        // The region is read by the client while it builds the device and never
++        // looked at again, so sending it later is the same as not sending it.
++        if let Some(region) = region {
++            // `dev` is the high-level wrapper; the `ei_device` object underneath
++            // is the one that carries the region request.
++            dev.device()
++                .region(0, 0, region.width, region.height, 1.0);
++            debug!("reported device region {}x{}", region.width, region.height);
++        }
++
++        // Without the keymap deskflow logs "does not have a keymap, we are
++        // guessing" and assumes a US layout, mistranslating every non-US keycode
++        // on the remote screen.
+         // Only keyboard devices carry a keymap; pointers legitimately have none.
+         let Some(kb) = dev.interface::<eis::Keyboard>() else {
+             return;
+diff --git a/src/portal.rs b/src/portal.rs
+index f901e41..9b7796b 100644
+--- a/src/portal.rs
++++ b/src/portal.rs
+@@ -77,6 +77,29 @@ impl Barrier {
+     }
+ }
+ 
++/// Union of the enabled outputs, in logical coordinates.
++///
++/// The portal describes one zone per output while a libei client models the
++/// whole computer as a single device, so the region has to be the bounding box.
++/// niri is free to place an output at a negative offset and the protocol cannot
++/// express that, so the box is anchored at the origin instead.
++fn region_of(zones: &[niri::OutputZone]) -> Option<eis_server::Region> {
++    let mut width = 0u32;
++    let mut height = 0u32;
++    for zone in zones {
++        let right = u32::try_from(zone.zone.x.max(0))
++            .unwrap_or_default()
++            .saturating_add(zone.zone.width);
++        let bottom = u32::try_from(zone.zone.y.max(0))
++            .unwrap_or_default()
++            .saturating_add(zone.zone.height);
++        width = width.max(right);
++        height = height.max(bottom);
++    }
++
++    (width > 0 && height > 0).then_some(eis_server::Region { width, height })
++}
++
+ #[derive(Debug)]
+ pub struct Session {
+     pub handle: OwnedObjectPath,
+@@ -562,6 +585,12 @@ impl InputCapture {
+         app_id: String,
+         _options: HashMap<String, OwnedValue>,
+     ) -> zbus::fdo::Result<zvariant::OwnedFd> {
++        // The region has to be baked into the EIS devices as they are created,
++        // so the layout is read before the handshake can start. That query runs
++        // `niri msg`, so it happens outside the session lock rather than holding
++        // the lock across a subprocess.
++        let region = niri::outputs().await.ok().as_deref().and_then(region_of);
++
+         let mut sessions = self.state.sessions.lock().await;
+         let Some(session) = sessions.get_mut(&session_handle) else {
+             return Err(zbus::fdo::Error::InvalidArgs("unknown session".into()));
+@@ -581,6 +610,7 @@ impl InputCapture {
+             session_handle.as_str().to_owned(),
+             self.state.keymap.clone(),
+             self.state.eis_closed.clone(),
++            region,
+         )
+         .map_err(|e| zbus::fdo::Error::Failed(format!("EIS setup failed: {e:#}")))?;
+         session.eis = Some(handle);

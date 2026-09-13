@@ -24,6 +24,13 @@ rustPlatform.buildRustPackage {
     hash = "sha256-teX8coQ7sHqSiQSSnt+IOJj6eta+YD/q+DuXqEfWxoU=";
   };
 
+  # Upstream never reports an `ei_device.region`, the only thing a libei client
+  # has to size "this screen" with. Deskflow therefore keeps its 1x1 fallback,
+  # maps every activation onto (0, 0) and can only ever release the pointer
+  # towards the top edge — a client placed below or to the right of this machine
+  # is unreachable. See the patch header for the full trace.
+  patches = [ ./fix-eis-device-region.patch ];
+
   # Vendored crate hash; update.sh recomputes it whenever the revision moves.
   cargoHash = "sha256-UD9jSOyY+p7JbgvfzI1zcRisITFvjGoKWscvqzylldg=";
 
