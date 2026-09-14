@@ -65,12 +65,11 @@ let
     };
   };
 
-  # 使用 importPnpmLock 替代 fetchPnpmDeps，无需维护 pnpmDepsHash
-  # importPnpmLock 会从 pnpm-lock.yaml 的 integrity 字段直接解析依赖
+  # Use importPnpmLock instead of fetchPnpmDeps; no need to maintain pnpmDepsHash.
+  # importPnpmLock parses dependencies directly from the integrity fields in pnpm-lock.yaml.
   mitmCache = importPnpmLock {
     inherit pname version;
     lockFile = ./pnpm-lock.yaml;
-    pnpm = pnpm';
   };
 
   # The dsh CLI (apps/cli) resolves its ~90 workspace dependencies through the
