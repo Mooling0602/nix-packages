@@ -3,12 +3,12 @@
   bashInteractive,
   bubblewrap,
   fetchFromGitHub,
-  fetchPnpmDeps,
   fetchurl,
+  importPnpmLock,
+  iplConfigHook,
   makeWrapper,
   nodejs-slim,
   nodejs_24,
-  pnpmConfigHook,
   stdenv,
   versionCheckHook,
 }:
@@ -65,21 +65,12 @@ let
     };
   };
 
-  # fetcherVersion 4: the SQLite store index is dumped to a deterministic SQL
-  # text file (pnpm 11 stores are otherwise byte-non-reproducible).
-  # manage-package-manager-versions=false keeps `packageManager` from
-  # delegating to a downloaded pnpm; minimum-release-age=0 skips the
-  # supply-chain metadata lookups that otherwise stall the fetch for minutes.
-  pnpmDeps = fetchPnpmDeps {
-    pname = "deepseek-harness-git";
-    inherit src;
+  # 使用 importPnpmLock 替代 fetchPnpmDeps，无需维护 pnpmDepsHash
+  # importPnpmLock 会从 pnpm-lock.yaml 的 integrity 字段直接解析依赖
+  mitmCache = importPnpmLock {
+    inherit pname version;
+    lockFile = ./pnpm-lock.yaml;
     pnpm = pnpm';
-    fetcherVersion = 4;
-    pnpmInstallFlags = [
-      "--config.manage-package-manager-versions=false"
-      "--config.minimum-release-age=0"
-    ];
-    hash = versionData.pnpmDepsHash;
   };
 
   # The dsh CLI (apps/cli) resolves its ~90 workspace dependencies through the
@@ -89,12 +80,12 @@ let
   # the wrapper points straight at apps/cli/lib/bin.js.
 in
 stdenv.mkDerivation (finalAttrs: {
-  inherit pname version src pnpmDeps;
+  inherit pname version src mitmCache;
 
   nativeBuildInputs = [
     nodejs_24
     pnpm'
-    pnpmConfigHook
+    iplConfigHook
     makeWrapper
   ];
 
@@ -106,8 +97,6 @@ stdenv.mkDerivation (finalAttrs: {
     # build.ts wants `git rev-parse HEAD`; the tarball has no .git, so pass
     # the pinned rev explicitly (sliced to 7 chars upstream).
     DSH_CLIENT_COMMIT_HASH = rev;
-    pnpm_config_manage_package_manager_versions = "false";
-    pnpm_config_minimum_release_age = "0";
   };
 
   buildPhase = ''

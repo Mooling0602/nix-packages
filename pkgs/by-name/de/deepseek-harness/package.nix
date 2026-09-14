@@ -4,8 +4,9 @@
   bubblewrap,
   buildNpmPackage,
   fetchurl,
+  importNpmLock,
   makeWrapper,
-  nodejs,
+  nodejs_22,
   runCommand,
   versionCheckHook,
 }:
@@ -21,7 +22,7 @@ let
   # The lockfile covers production dependencies only (dsh lists unreleased
   # workspace packages among its devDependencies), so devDependencies is
   # stripped from the manifest to keep `npm ci` in sync.
-  src = runCommand "${pname}-source" { nativeBuildInputs = [ nodejs ]; } ''
+  src = runCommand "${pname}-source" { nativeBuildInputs = [ nodejs_22 ]; } ''
     mkdir -p $out
     tar -xzf ${
       fetchurl {
@@ -37,8 +38,15 @@ in
 buildNpmPackage {
   inherit pname version src;
 
-  npmDepsFetcherVersion = 2;
-  npmDepsHash = versionData.npmDepsHash;
+  # Use importNpmLock instead of npmDepsHash
+  npmDeps = importNpmLock {
+    npmRoot = src;
+  };
+  
+  # Must use importNpmLock.npmConfigHook
+  npmConfigHook = importNpmLock.npmConfigHook;
+
+  nodejs = nodejs_22;  # Pin Node.js version
 
   dontNpmBuild = true;
 
@@ -53,7 +61,7 @@ buildNpmPackage {
     rm $out/bin/dsh
     # dsh-sandbox-local probes `bwrap` from PATH for its preferred Linux
     # sandbox backend (chain: bwrap, then landlock).
-    makeWrapper ${lib.getExe nodejs} $out/bin/dsh \
+    makeWrapper ${lib.getExe nodejs_22} $out/bin/dsh \
       --argv0 dsh \
       --prefix PATH : ${lib.makeBinPath [ bubblewrap ]} \
       --add-flags "--expose-internals" \

@@ -8,13 +8,8 @@ set -euo pipefail
 #   1. bump `version` in hashes.json
 #   2. regenerate package-lock.json for the new version
 #   3. recompute sourceHash (the npm tarball hash)
-#   4. recompute npmDepsHash (the hash of the installed node_modules tree)
 #
-# npmDepsHash cannot be prefetched directly: it is the hash of what
-# `npm install` produces, which is only known after a build. We therefore
-# write a dummy hash, run `nix build`, and harvest the real value from the
-# fixed-output hash-mismatch error reported by Nix (same trick as
-# numtide/llm-agents.nix).
+# After using importNpmLock, no need to maintain npmDepsHash.
 
 usage() {
   echo "Usage: $(basename "$0") [version]" >&2
@@ -138,13 +133,11 @@ tar -xzf "$work/dsh.tgz" -C "$work/pkg" --strip-components=1
 )
 cp "$work/pkg/package-lock.json" "$lockfile"
 
-# --- 3. write version + sourceHash, park a dummy npmDepsHash ---
-DUMMY="sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+# --- 3. write version + sourceHash (npmDepsHash is no longer needed) ---
 cat > "$hashes_json" <<EOF
 {
   "version": "$version",
-  "sourceHash": "$src_hash",
-  "npmDepsHash": "$DUMMY"
+  "sourceHash": "$src_hash"
 }
 EOF
 
@@ -153,33 +146,4 @@ update_readme_versions
 echo "Updated deepseek-harness to $version"
 echo "sourceHash: $src_hash"
 echo
-echo "Now computing npmDepsHash via a build (this downloads all $version deps on first run)..."
-echo "(npmDepsHash is currently a dummy; if this fails or you prefer, run manually:)"
-echo "  cd '$repo_root' && nix build '.#deepseek-harness'"
-echo
-
-# --- 4. build once with the dummy hash to harvest the real npmDepsHash ---
-build_log="$work/build.log"
-if nix --extra-experimental-features 'nix-command flakes' build \
-    "path:$repo_root#deepseek-harness" 2>"$build_log"; then
-  echo "Build succeeded with the dummy hash (unexpected); npmDepsHash left as-is."
-  exit 0
-fi
-
-got="$(grep -oE 'got:[[:space:]]*sha256-[A-Za-z0-9+/=]+' "$build_log" | head -1 | sed 's/.*sha256-/sha256-/')"
-if [ -n "$got" ]; then
-  cat > "$hashes_json" <<EOF
-{
-  "version": "$version",
-  "sourceHash": "$src_hash",
-  "npmDepsHash": "$got"
-}
-EOF
-  echo "npmDepsHash: $got"
-  echo "deepseek-harness fully updated to $version."
-else
-  echo "Could not harvest npmDepsHash automatically. Build output below." >&2
-  echo "Fix the 'got:' hash or run the manual command above and paste the value into hashes.json." >&2
-  sed -n '/error: hash mismatch/,$p' "$build_log" >&2
-  exit 1
-fi
+echo "Build with: nix build '.#deepseek-harness'"
