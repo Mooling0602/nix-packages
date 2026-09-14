@@ -1,11 +1,21 @@
 {
   description = "Mooling's NUR packages";
 
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    importPnpmLock = {
+      url = "git+https://tangled.org/scrumplex.net/importPnpmLock.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+  };
 
-  outputs = { self, nixpkgs }: let
+  outputs = { self, nixpkgs, importPnpmLock }: let
     forAllSystems = nixpkgs.lib.genAttrs nixpkgs.lib.platforms.unix;
-    pkgsFor = system: import nixpkgs { inherit system; config.allowUnfree = true; };
+    pkgsFor = system: import nixpkgs { 
+      inherit system; 
+      config.allowUnfree = true;
+      overlays = [ importPnpmLock.overlays.default ];
+    };
   in {
     packages = forAllSystems (system: import self { pkgs = pkgsFor system; });
 
