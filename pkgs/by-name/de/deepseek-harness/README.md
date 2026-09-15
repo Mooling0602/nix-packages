@@ -6,7 +6,7 @@
 agent harness and CLI — packaged from the official npm tarball with a pinned
 dependency lockfile.
 
-Current version: 0.1.5-rc.2.
+Current version: 0.1.6-alpha.1.
 
 The package is built with `buildNpmPackage`: it pulls the `@deepseek-ai/dsh`
 tarball, injects the vendored `package-lock.json`, and produces the `dsh`
@@ -31,6 +31,6 @@ to:
 ./update.sh -t alpha
 ```
 
-The update script regenerates `package-lock.json`, prefetches the new
-`sourceHash`, and recomputes `npmDepsHash` (the first rebuild downloads all
-dependencies, so it can take a while).
+The update script regenerates the vendored `package-lock.json` and prefetches
+the new `sourceHash`. No dependency hash has to be probed: `importNpmLock`
+derives the dependency set from the lockfile.

@@ -7,7 +7,6 @@
   importPnpmLock,
   iplConfigHook,
   makeWrapper,
-  nodejs-slim,
   nodejs_24,
   stdenv,
   versionCheckHook,
@@ -57,12 +56,6 @@ let
         --add-flags "$out/lib/pnpm/bin/pnpm.cjs"
       runHook postInstall
     '';
-
-    passthru = {
-      # fetchPnpmDeps overrides pnpm-fixup-state-db with pnpm.nodejs-slim.
-      nodejs-slim = nodejs-slim;
-      nodejs = nodejs_24;
-    };
   };
 
   # Use importPnpmLock instead of fetchPnpmDeps; no need to maintain pnpmDepsHash.
