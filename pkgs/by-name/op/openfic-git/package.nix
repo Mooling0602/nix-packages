@@ -3,30 +3,34 @@
   stdenv,
   fetchFromGitHub,
   fetchurl,
-  fetchPnpmDeps,
+  importPnpmLock,
+  mitm-cache,
+  writableTmpDirAsHomeHook,
   makeWrapper,
   makeDesktopItem,
   cacert,
   nodejs,
-  nodejs-slim,
-  sqlite,
-  zstd,
   electron_43,
 }:
 
 let
-  # Tracks upstream main HEAD; see update.sh. The nix version only dates the
-  # commit — desktop/package.json keeps its upstream version (currently
-  # 0.10.1) because the app's local backend bootstrap requires a PyPI
-  # `openfic` release matching app.getVersion().
-  rev = "284cf6bf0c5c98f6ed36ae38db9f7f5225d62b87";
-  version = "unstable-2026-09-10";
+  # Update-managed pins live in hashes.json so update.sh never has to rewrite
+  # Nix code; the vendored pnpm lockfiles next to this file are synced by the
+  # same script and feed importPnpmLock below.
+  pins = builtins.fromJSON (builtins.readFile ./hashes.json);
+
+  # Tracks upstream main HEAD. The nix version only dates the commit —
+  # desktop/package.json keeps its upstream version because the app's local
+  # backend bootstrap requires a PyPI `openfic` release matching
+  # app.getVersion().
+  rev = pins.rev;
+  version = pins.version;
 
   src = fetchFromGitHub {
     owner = "syrizelink";
     repo = "OpenFic";
     inherit rev;
-    hash = "sha256-Gn0f4OaYSosjt60kyvekEeIF69jWPCytIZ0Y7DHqROk=";
+    hash = pins.srcHash;
   };
 
   # Upstream maintains the lockfiles with pnpm 11.8 (desktop/package.json
@@ -35,11 +39,11 @@ let
   # exact pinned pnpm through nixpkgs nodejs.
   pnpm' = stdenv.mkDerivation {
     pname = "pnpm-for-openfic";
-    version = "11.8.0";
+    version = pins.pnpmVersion;
 
     src = fetchurl {
-      url = "https://registry.npmjs.org/pnpm/-/pnpm-11.8.0.tgz";
-      hash = "sha256-HpY6XEylFoVQugP8TujYc6dysHK3/OY7SP/yfXIOLpg=";
+      url = "https://registry.npmjs.org/pnpm/-/pnpm-${pins.pnpmVersion}.tgz";
+      hash = pins.pnpmHash;
     };
 
     nativeBuildInputs = [
@@ -59,54 +63,40 @@ let
         --add-flags "$out/lib/pnpm/bin/pnpm.cjs"
       runHook postInstall
     '';
-
-    passthru = {
-      # fetchPnpmDeps overrides pnpm-fixup-state-db with pnpm.nodejs-slim.
-      nodejs-slim = nodejs-slim;
-      nodejs = nodejs;
-    };
   };
 
   # OpenFic has no pnpm workspace root: desktop/ and frontend/ are two
   # independent pnpm projects with separate lockfiles, both consumed by this
-  # package. fetchPnpmDeps insists on a lockfile at the source root, so
-  # preInstall re-roots the checks onto desktop/, prePnpmInstall populates
-  # the frontend packages and leaves the working directory on desktop/ for
-  # the main install — both installs share one store, which nixpkgs then
-  # normalizes into a reproducible tarball (fetcherVersion 4: fixup-state-db,
-  # SQLite index dumped as SQL text, sorted JSON, stable permissions).
+  # package. importPnpmLock turns each lockfile's integrity hashes into the
+  # mitm-cache data for that project; both data sets are merged and fed to
+  # mitm-cache.fetch once, so there is no aggregate dependency-store hash to
+  # probe: the cache is reproducible by construction, and the build only
+  # performs ordinary `pnpm install`s through the replay proxy.
   #
-  # manage-package-manager-versions=false keeps `packageManager` from
-  # delegating to a downloaded pnpm; minimum-release-age=0 disables
-  # supply-chain metadata lookups that fail inside the build sandbox.
-  pnpmDeps = fetchPnpmDeps {
-    pname = "openfic-git";
-    inherit version src;
-    pnpm = pnpm';
-    # fetcherVersion 4: the SQLite store index is dumped to a deterministic
-    # SQL text file (pnpm 11 stores are otherwise byte-non-reproducible).
-    fetcherVersion = 4;
+  # The vendored lockfiles must match the ones in src; update.sh syncs them
+  # from the same revision, and `pnpm install --frozen-lockfile` fails loudly
+  # if they ever drift.
+  desktopDeps = lib.importJSON (importPnpmLock {
+    pname = "openfic-desktop-deps";
+    inherit version;
+    lockFile = ./pnpm-lock.desktop.yaml;
+  }).passthru.data;
+  frontendDeps = lib.importJSON (importPnpmLock {
+    pname = "openfic-frontend-deps";
+    inherit version;
+    lockFile = ./pnpm-lock.frontend.yaml;
+  }).passthru.data;
 
-    preInstall = ''
-      cp desktop/pnpm-lock.yaml desktop/pnpm-workspace.yaml .
-    '';
-
-    prePnpmInstall = ''
-      (
-        cd frontend
-        pnpm install --force --ignore-scripts --frozen-lockfile \
-          --config.manage-package-manager-versions=false \
-          --config.minimum-release-age=0
-      )
-      cd desktop
-    '';
-
-    pnpmInstallFlags = [
-      "--config.manage-package-manager-versions=false"
-      "--config.minimum-release-age=0"
-    ];
-
-    hash = "sha256-0hWjOg7e7MJ66cSDhta6Lm1qWhV7nya8I03ogzkqZyo=";
+  mitmCache = mitm-cache.fetch {
+    name = "openfic-git-pnpm-mitm-cache";
+    data =
+      # Whenever both lockfiles pin the same registry URL they must agree on
+      # the integrity hash; a mismatch would mean one of them is corrupt and
+      # the merged cache would silently pick one of the two.
+      assert lib.all
+        (name: desktopDeps.${name} == frontendDeps.${name})
+        (builtins.attrNames (builtins.intersectAttrs desktopDeps frontendDeps));
+      desktopDeps // frontendDeps;
   };
 
   desktopItem = makeDesktopItem {
@@ -131,13 +121,13 @@ let
 in
 stdenv.mkDerivation {
   pname = "openfic-git";
-  inherit version src;
+  inherit version src mitmCache;
 
   nativeBuildInputs = [
     pnpm'
     nodejs
-    sqlite
-    zstd
+    mitm-cache
+    writableTmpDirAsHomeHook
     makeWrapper
   ];
 
@@ -157,22 +147,15 @@ stdenv.mkDerivation {
     export pnpm_config_manage_package_manager_versions=false
     export pnpm_config_minimum_release_age=0
     export pnpm_config_package_import_method=clone-or-copy
+    # pnpm 11 otherwise rejects these lockfiles during its supply-chain
+    # checks; the mitm-cache setup hook exports a bare host:port in
+    # $https_proxy, which pnpm only honours as an explicit config value.
+    export pnpm_config_trust_lockfile=true
+    export pnpm_config_pm_on_fail=ignore
+    pnpm config set https-proxy "http://$https_proxy"
 
-    # Unpack the reproducible dependency store and work on a writable copy:
-    # offline installs register the project inside the store (SQLite index).
-    store="$TMPDIR/pnpm-store"
-    mkdir -p "$store"
-    tar --zstd -xf "${pnpmDeps}/pnpm-store.tar.zst" -C "$store"
-    chmod -R +w "$store"
-    # fetcherVersion 4 ships the store index as deterministic SQL text
-    # (mirroring pnpmConfigHook); reconstruct the binary database.
-    if [ -f "$store/v11/index.db.sql" ]; then
-      sqlite3 "$store/v11/index.db" < "$store/v11/index.db.sql"
-      rm "$store/v11/index.db.sql"
-    fi
-
-    pnpm --dir frontend install --offline --ignore-scripts --frozen-lockfile --store-dir "$store"
-    pnpm --dir desktop install --offline --ignore-scripts --frozen-lockfile --store-dir "$store"
+    pnpm --dir frontend install --ignore-scripts --frozen-lockfile
+    pnpm --dir desktop install --ignore-scripts --frozen-lockfile
     # desktop's build script also builds the frontend (pnpm --dir ../frontend build).
     pnpm --dir desktop run build
 
@@ -185,7 +168,6 @@ stdenv.mkDerivation {
     export pnpm_config_manage_package_manager_versions=false
     export pnpm_config_minimum_release_age=0
     export pnpm_config_package_import_method=clone-or-copy
-    store="$TMPDIR/pnpm-store"
 
     mkdir -p "$out/share/openfic/frontend"
     # The main process reads the frontend through ../frontend/dist.
@@ -198,8 +180,8 @@ stdenv.mkDerivation {
     (
       cd "$out/share/openfic/desktop"
       rm -rf node_modules
-      pnpm install --prod --offline --ignore-scripts --frozen-lockfile \
-        --node-linker=hoisted --store-dir "$store"
+      pnpm install --prod --ignore-scripts --frozen-lockfile \
+        --node-linker=hoisted
     )
 
     install -Dm644 desktop/resources/icons/openfic.svg \

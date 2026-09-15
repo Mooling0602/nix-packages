@@ -3,7 +3,7 @@
 > 中文（简体） · [English](README.md)
 
 从源码（上游 `main` 分支）构建的 OpenFic 桌面端，使用 nixpkgs 的 Electron，
-而非上游 electron-builder 预编译产物。跟踪上游 main 分支：`284cf6bf0c5c98f6ed36ae38db9f7f5225d62b87`。
+而非上游 electron-builder 预编译产物。跟踪上游 main 分支：`5cd2241a14d4df586af5eea754a83b6de17baa12`。
 
 姊妹包 `openfic` 用 bubblewrap FHS 环境包装上游发行 tarball；本包是纯源码
 构建，不提供 FHS 沙箱。**两者不要同时安装**——它们共用同一个 Electron 应用
@@ -19,11 +19,14 @@
 
 ## 构建说明
 
-- `frontend/` 与 `desktop/` 是两个独立的 pnpm 工程；依赖预取进一个
-  fixed-output store 派生，正式构建完全离线复现（`--offline`、
-  `--ignore-scripts`）。
+- `frontend/` 与 `desktop/` 是两个独立的 pnpm 工程；两者的 lockfile 随包
+  vendored，由 `importPnpmLock` 解析其 integrity 生成逐包 tarball 缓存，
+  `pnpm install` 通过本地重放代理从缓存安装——无需维护聚合的依赖 store
+  哈希，构建依然可复现。
+- vendored lockfile 由 `update.sh` 从 pin 定的上游提交同步；
+  `--frozen-lockfile` 会在两者不一致时直接让构建失败。
 - 上游 `packageManager` 字段 pin 的 pnpm 精确版本以 npm tarball 形式内嵌
-  （nixpkgs 的 pnpm 版本过新，无法离线消费上游 lockfile）。
+  （nixpkgs 的 pnpm 版本过新，无法接受上游 lockfile）。
 - 应用以 Electron 非打包模式运行：桌面条目通过
   `electron <share/openfic/desktop>` 启动，前端资源从相邻的
   `../frontend/dist` 目录解析，与上游开发布局一致。
@@ -35,5 +38,5 @@
 ./update.sh
 ```
 
-拉取 `main` 最新提交，刷新全部三个哈希（源码、内嵌 pnpm、依赖 store）并
-验证构建。
+拉取 `main` 最新提交、同步两个 pnpm lockfile、刷新源码与内嵌 pnpm 的
+哈希，并验证 flake 求值。

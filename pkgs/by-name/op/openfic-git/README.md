@@ -4,7 +4,7 @@
 
 OpenFic desktop app built from source (upstream `main` branch), packaged with
 nixpkgs Electron instead of the prebuilt electron-builder tarball. Following
-upstream main at `284cf6bf0c5c98f6ed36ae38db9f7f5225d62b87`.
+upstream main at `5cd2241a14d4df586af5eea754a83b6de17baa12`.
 
 The sibling `openfic` package wraps the upstream release tarball in a bubblewrap
 FHS environment; this one is a plain source build with no FHS sandbox. Do not
@@ -22,12 +22,16 @@ identity.
 
 ## Build notes
 
-- `frontend/` and `desktop/` are separate pnpm projects; dependencies are
-  prefetched into a fixed-output store derivation, and the build reproduces it
-  offline (`--offline`, `--ignore-scripts`).
+- `frontend/` and `desktop/` are separate pnpm projects; their lockfiles are
+  vendored and parsed by `importPnpmLock`, which turns the integrity hashes
+  into a per-package tarball cache. `pnpm install` fetches through a local
+  replay proxy, so the build is reproducible without an aggregate
+  dependency-store hash.
+- The vendored lockfiles are synced from the pinned upstream revision by
+  `update.sh`; `--frozen-lockfile` fails the build if they ever drift.
 - The exact pnpm version pinned by upstream's `packageManager` field is
-  embedded as an npm tarball because nixpkgs' pnpm is too new to consume the
-  lockfiles offline.
+  embedded as an npm tarball because nixpkgs' pnpm is too new to accept the
+  upstream lockfiles.
 - The app runs in Electron's non-packaged mode: the desktop entry is executed
   through `electron <share/openfic/desktop>` and the frontend is resolved from
   the sibling `../frontend/dist` directory, matching upstream's dev layout.
@@ -40,5 +44,5 @@ identity.
 ./update.sh
 ```
 
-Fetches the latest `main` commit, refreshes all three hashes (source, embedded
-pnpm, dependency store) and verifies the build.
+Fetches the latest `main` commit, syncs both pnpm lockfiles, refreshes the
+source and embedded-pnpm hashes, and verifies the flake still evaluates.
