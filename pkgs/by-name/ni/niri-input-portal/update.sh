@@ -28,8 +28,12 @@ die() { echo "Error: $*" >&2; exit 1; }
 # --- 1. Resolve the latest main HEAD commit ---------------------------------
 
 head_json="$(curl -fsSL "${gh_auth[@]}" "$repo_api/commits/main")" || die "failed to fetch main HEAD"
-new_rev="$(printf '%s' "$head_json" | sed -n 's/.*"sha": *"\([0-9a-f]\{40\}\)".*/\1/p' | head -n1)"
-commit_date="$(printf '%s' "$head_json" | sed -n 's/.*"date": *"\([0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}\)T[^"]*".*/\1/p' | head -n1)"
+# `head -n1` closes the pipe after the first line, so the upstream `sed` can
+# die with SIGPIPE (status 141) when the commits JSON is large. Under
+# `set -e` + `pipefail` that would abort the script before the extraction is
+# validated below; `|| true` absorbs the expected SIGPIPE.
+new_rev="$(printf '%s' "$head_json" | sed -n 's/.*"sha": *"\([0-9a-f]\{40\}\)".*/\1/p' | head -n1)" || true
+commit_date="$(printf '%s' "$head_json" | sed -n 's/.*"date": *"\([0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}\)T[^"]*".*/\1/p' | head -n1)" || true
 
 [ -n "$new_rev" ] || die "failed to extract commit sha"
 [ -n "$commit_date" ] || die "failed to extract commit date"
