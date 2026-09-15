@@ -5,7 +5,7 @@
 [Axolotl Launcher](https://github.com/Mystic-Stars/Axolotl), a free cross-platform Minecraft launcher built on the Modrinth
 ecosystem, packaged from the official Linux `.deb`.
 
-Current version: 1.9.5.
+Current version: 1.9.6.
 
 ## FHS environment
 
