@@ -10,7 +10,7 @@ CLI 桥接位于 `$out/share/qoder-ide/bin/qoder`。
 
 ## 维护说明
 
-当前版本：1.30.1。上游有更新版本时，可以等待此处更新，或发起 Issue 通知。
+当前版本：1.31.0。上游有更新版本时，可以等待此处更新，或发起 Issue 通知。
 
 上游发布新版本后，更新 `package.nix` 中的 `version` 和 `hash`。下载直链格式为：
 
@@ -29,7 +29,11 @@ nix store prefetch-file https://download.qoder.com/release/<version>/qoder-ide_a
 nix-prefetch-url https://download.qoder.com/release/<version>/qoder-ide_amd64.deb | xargs nix hash to-sri --type sha256
 ```
 
-也可以直接运行更新脚本。无参数时会从官方 `release/latest/qoder-ide_amd64.deb` 的 `control` 元数据自动检测最新版本，也可以手动指定版本：
+也可以直接运行更新脚本。无参数时会交叉校验两个来源并取较新的版本：更新日志页面
+（[qoder.com/zh/changelog?type=ide](https://qoder.com/zh/changelog?type=ide)，其内嵌 JSON 列出了
+所有发布版本）与官方 `release/latest/qoder-ide_amd64.deb` 的 `control` 元数据。之所以两者都查，
+是因为下载用的 `latest` 别名可能滞后（上文那个被冻结的 `qoder_amd64.deb` 链接就是先例），
+否则脚本会对过期版本报出「已是最新」。也可以手动指定版本：
 
 ```sh
 ./update.sh

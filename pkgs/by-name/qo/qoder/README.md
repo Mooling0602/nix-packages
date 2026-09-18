@@ -24,7 +24,7 @@ the app in native Wayland mode.
 
 ## Maintenance notes
 
-Current version: 0.2.5. When a newer version is available upstream, you may
+Current version: 0.3.3. When a newer version is available upstream, you may
 wait for this package to be updated, or open an Issue to request it.
 
 When upstream releases a new version, update the `version` and `hash` in
@@ -48,9 +48,13 @@ nix-prefetch-url https://download.qoder.com/qoder-app/releases/<version>/Qoder-l
 ```
 
 Alternatively, run the update script. With no argument it auto-detects the
-latest version from the `control` metadata of the official
-`qoder-app/releases/latest/Qoder-linux-amd64.deb`; you can also specify a
-version manually:
+latest version by cross-checking two sources and taking the newer one: the
+changelog page ([qoder.com/zh/changelog?type=app](https://qoder.com/zh/changelog?type=app),
+whose embedded JSON lists every release) and the `control` metadata of the
+official `qoder-app/releases/latest/Qoder-linux-amd64.deb`. Both are checked
+because the `latest` download alias can lag behind and would otherwise make the
+script report "already up to date" for an outdated package. You can also specify
+a version manually:
 
 ```sh
 ./update.sh

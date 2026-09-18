@@ -13,7 +13,7 @@ either. The IDE's own CLI bridge is available as
 
 ## Maintenance notes
 
-Current version: 1.30.1. When a newer version is available upstream, you may
+Current version: 1.31.0. When a newer version is available upstream, you may
 wait for this package to be updated, or open an Issue to request it.
 
 When upstream releases a new version, update the `version` and `hash` in
@@ -38,8 +38,14 @@ nix-prefetch-url https://download.qoder.com/release/<version>/qoder-ide_amd64.de
 ```
 
 Alternatively, run the update script. With no argument it auto-detects the
-latest version from the `control` metadata of the official
-`release/latest/qoder-ide_amd64.deb`; you can also specify a version manually:
+latest version by cross-checking two sources and taking the newer one: the
+changelog page ([qoder.com/zh/changelog?type=ide](https://qoder.com/zh/changelog?type=ide),
+whose embedded JSON lists every release) and the `control` metadata of the
+official `release/latest/qoder-ide_amd64.deb`. Both are checked because the
+`latest` download alias can lag behind — as the frozen `qoder_amd64.deb` URL
+above already demonstrated — and would otherwise make the script report
+"already up to date" for an outdated package. You can also specify a version
+manually:
 
 ```sh
 ./update.sh
