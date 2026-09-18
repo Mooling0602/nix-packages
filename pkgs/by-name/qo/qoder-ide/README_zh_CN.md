@@ -4,7 +4,9 @@
 
 [Qoder IDE](https://qoder.com/zh/ide) — 面向真实软件开发的 AI 原生 IDE。为闭源商业软件（`unfree`），目前仅支持 `x86_64-linux`。
 
-上游已将 Qoder 拆分为多个独立产品：本包只安装 **Qoder IDE**。独立的 Qoder 应用与独立的 `qoder` CLI 均不在本包内；IDE 自带的 CLI 桥接位于 `$out/share/qoder-ide/bin/qoder`。
+上游已将 Qoder 拆分为多个独立产品：本包只安装 **Qoder IDE**。独立的 Qoder 应用由
+[`qoder`](../qoder/README_zh_CN.md) 单独打包；独立的 `qoder` CLI 也不在本包内。IDE 自带的
+CLI 桥接位于 `$out/share/qoder-ide/bin/qoder`。
 
 ## 维护说明
 

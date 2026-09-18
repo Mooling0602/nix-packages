@@ -38,6 +38,7 @@ Mooling0602's [NUR](https://github.com/nix-community/NUR) repository. May includ
 | [`openfic`](pkgs/by-name/op/openfic/README.md) | OpenFic, an AI-native writing tool for fiction authors, from the official tar.gz release (Apache-2.0, x86_64-linux only) |
 | [`openfic-git`](pkgs/by-name/op/openfic-git/README.md) | OpenFic desktop built from upstream `main` with nixpkgs Electron, no FHS sandbox (Apache-2.0, x86_64-linux, requires nix-ld) |
 | [`pebble-mail`](pkgs/by-name/pe/pebble-mail/README.md) | Pebble, a local-first desktop email client built with Rust, Tauri, and React, from the official `.deb` (AGPL-3.0, x86_64-linux only) |
+| [`qoder`](pkgs/by-name/qo/qoder/README.md) | Qoder, an agent workbench for human and AI software teams, from the official `.deb` (unfree, x86_64-linux only) |
 | [`qoder-ide`](pkgs/by-name/qo/qoder-ide/README.md) | Qoder IDE, Agentic IDE for Real Software (unfree, x86_64-linux only) |
 | [`reasonix-desktop`](pkgs/by-name/re/reasonix-desktop/README.md) | Desktop app for the DeepSeek-Reasonix reasoning enhancer (x86_64-linux only) |
 

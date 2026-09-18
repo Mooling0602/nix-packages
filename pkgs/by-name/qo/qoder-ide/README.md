@@ -6,8 +6,10 @@
 software (`unfree`), and currently only supported on `x86_64-linux`.
 
 Upstream split Qoder into separate products: this package installs **Qoder IDE**
-only. The standalone Qoder app and the standalone `qoder` CLI are not included;
-the IDE's own CLI bridge is available as `$out/share/qoder-ide/bin/qoder`.
+only. The standalone Qoder app is packaged separately as
+[`qoder`](../qoder/README.md); the standalone `qoder` CLI is not included
+either. The IDE's own CLI bridge is available as
+`$out/share/qoder-ide/bin/qoder`.
 
 ## Maintenance notes
 
