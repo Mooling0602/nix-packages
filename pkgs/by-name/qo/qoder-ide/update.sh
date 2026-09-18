@@ -1,4 +1,12 @@
 #!/usr/bin/env bash
+# Update qoder-ide to the latest upstream release.
+#
+# Upstream renamed the IDE product from `qoder` to `qoder-ide` in 1.25.1 and
+# moved the download path along with it. The pre-rename
+# `release/latest/qoder_amd64.deb` URL still answers 200 but is frozen at 1.24.2,
+# so probing it silently reported "already up to date" forever; discovery uses
+# the renamed `release/latest/qoder-ide_amd64.deb` and the versioned download URL
+# is `release/<version>/qoder-ide_amd64.deb`.
 set -euo pipefail
 
 usage() {
@@ -8,30 +16,37 @@ usage() {
 
 force=false
 
+# Version of the artifact behind the version-less `latest` URL, read from the
+# Debian control metadata. Only the first 64 KiB are fetched, which covers the
+# leading `control.tar.xz` member of the archive; downloading the full ~180 MB
+# package just to read one field would be absurd.
+#
+# The `control` Version carries a build timestamp suffix (1.30.1-1789452627)
+# that the release path and `package.nix` do not use, so it is stripped.
 latest_version() {
   local tmpdir control_version version
 
-  tmpdir="$(mktemp -d "${TMPDIR:-/tmp}/qoder-update.XXXXXX")"
+  tmpdir="$(mktemp -d "${TMPDIR:-/tmp}/qoder-ide-update.XXXXXX")"
 
-  if ! curl -fsSL -r 0-65535 "https://download.qoder.com/release/latest/qoder_amd64.deb" \
-    -o "$tmpdir/qoder-head.deb"; then
+  if ! curl -fsSL -r 0-65535 "https://download.qoder.com/release/latest/qoder-ide_amd64.deb" \
+    -o "$tmpdir/qoder-ide-head.deb"; then
     rm -rf "$tmpdir"
-    echo "Error: failed to fetch latest qoder Debian package metadata" >&2
+    echo "Error: failed to fetch latest qoder-ide Debian package metadata" >&2
     exit 1
   fi
 
-  if ! control_version="$(ar p "$tmpdir/qoder-head.deb" control.tar.xz \
+  if ! control_version="$(ar p "$tmpdir/qoder-ide-head.deb" control.tar.xz \
     | tar -xOJf - ./control \
     | sed -n 's/^Version: //p')"; then
     rm -rf "$tmpdir"
-    echo "Error: failed to extract latest qoder version from Debian control metadata" >&2
+    echo "Error: failed to extract latest qoder-ide version from Debian control metadata" >&2
     exit 1
   fi
   rm -rf "$tmpdir"
   version="${control_version%%-*}"
 
   if [ -z "$version" ]; then
-    echo "Error: failed to extract latest qoder version from Debian control metadata" >&2
+    echo "Error: failed to extract latest qoder-ide version from Debian control metadata" >&2
     exit 1
   fi
 
@@ -92,11 +107,11 @@ update_readme_versions() {
 
 if [ "$force" = false ] && [ "$current_version" = "$version" ]; then
   update_readme_versions
-  echo "qoder is already at $version"
+  echo "qoder-ide is already at $version"
   exit 0
 fi
 
-src_url="https://download.qoder.com/release/${version}/qoder_amd64.deb"
+src_url="https://download.qoder.com/release/${version}/qoder-ide_amd64.deb"
 
 prefetch_hash() {
   nix --extra-experimental-features nix-command store prefetch-file --json "$1" \
@@ -117,5 +132,5 @@ sed -i -E \
 
 update_readme_versions
 
-echo "Updated qoder to $version"
+echo "Updated qoder-ide to $version"
 echo "src hash: $src_hash"

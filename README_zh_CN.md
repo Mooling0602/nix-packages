@@ -6,7 +6,7 @@ Mooling0602 的 [NUR](https://github.com/nix-community/NUR) 软件仓库，由 �
 
 ## 使用方法
 
-### 作为 flake
+### 添加 flake 输入
 
 ```nix
 {
@@ -15,12 +15,12 @@ Mooling0602 的 [NUR](https://github.com/nix-community/NUR) 软件仓库，由 �
 }
 ```
 
-### 配合 NUR 使用
+### NUR 示例
 
 ```nix
 { pkgs, ... }: {
   nixpkgs.overlays = [ (final: prev: {
-    qoder = (import (builtins.fetchTarball "https://github.com/Mooling0602/nix-packages/archive/main.tar.gz") { pkgs = final; }).qoder;
+    qoder-ide = (import (builtins.fetchTarball "https://github.com/Mooling0602/nix-packages/archive/main.tar.gz") { pkgs = final; }).qoder-ide;
   }) ];
 }
 ```
@@ -38,7 +38,7 @@ Mooling0602 的 [NUR](https://github.com/nix-community/NUR) 软件仓库，由 �
 | [`openfic`](pkgs/by-name/op/openfic/README.md) | OpenFic，专为小说创作打造的 AI Native 写作工具，来自官方 tar.gz 发布产物（Apache-2.0，仅 x86_64-linux） |
 | [`openfic-git`](pkgs/by-name/op/openfic-git/README.md) | OpenFic 桌面端，从上游 `main` 源码构建，使用 nixpkgs Electron，无 FHS 沙箱（Apache-2.0，仅 x86_64-linux，需 nix-ld） |
 | [`pebble-mail`](pkgs/by-name/pe/pebble-mail/README.md) | Pebble，一款本地优先的桌面邮件客户端，来自官方 `.deb`（AGPL-3.0，仅 x86_64-linux） |
-| [`qoder`](pkgs/by-name/qo/qoder/README.md) | 阿里巴巴的智能 AI 编程平台，具备深度代码库感知（unfree，仅 x86_64-linux） |
+| [`qoder-ide`](pkgs/by-name/qo/qoder-ide/README.md) | Qoder IDE，面向真实软件开发的 AI 原生 IDE（unfree，仅 x86_64-linux） |
 | [`reasonix-desktop`](pkgs/by-name/re/reasonix-desktop/README.md) | DeepSeek-Reasonix 推理增强器的桌面应用（仅 x86_64-linux） |
 
 ## 许可证

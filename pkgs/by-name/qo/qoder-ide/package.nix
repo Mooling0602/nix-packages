@@ -9,6 +9,7 @@
   bubblewrap,
   at-spi2-core,
   cairo,
+  cups,
   dbus,
   expat,
   gdk-pixbuf,
@@ -43,15 +44,18 @@
 }:
 
 let
-  version = "1.24.2";
+  version = "1.30.1";
 in
 stdenv.mkDerivation {
-  pname = "qoder";
+  pname = "qoder-ide";
   inherit version;
 
+  # Upstream renamed the IDE product from `qoder` to `qoder-ide` in 1.25.1 and
+  # moved the download path with it; the pre-rename `qoder_amd64.deb` URL is
+  # frozen at 1.24.2.
   src = fetchurl {
-    url = "https://download.qoder.com/release/${version}/qoder_amd64.deb";
-    hash = "sha256-KlsSmPy4g6hY8+CTWkUE58Ou+H3I/SrFiT+WboG2ErA=";
+    url = "https://download.qoder.com/release/${version}/qoder-ide_amd64.deb";
+    hash = "sha256-CyO1CN0bjiENl3EMNS8C33Sewb9JI6KDDwIx28DSZPI=";
   };
 
   nativeBuildInputs = [
@@ -65,6 +69,7 @@ stdenv.mkDerivation {
     at-spi2-core
     bubblewrap
     cairo
+    cups
     dbus
     expat
     gdk-pixbuf
@@ -110,20 +115,20 @@ stdenv.mkDerivation {
     mkdir -p "$out"
     cp -r usr/* "$out"/
     mkdir -p "$out/bin"
-    if [ -f "$out/share/qoder/qoder" ]; then
-      ln -s "$out/share/qoder/qoder" "$out/bin/qoder"
+    if [ -f "$out/share/qoder-ide/qoder-ide" ]; then
+      ln -s "$out/share/qoder-ide/qoder-ide" "$out/bin/qoder-ide"
     else
-      echo "Error: main executable not found at $out/share/qoder/qoder" >&2
+      echo "Error: main executable not found at $out/share/qoder-ide/qoder-ide" >&2
       exit 1
     fi
     for f in "$out/share/applications/"*.desktop; do
-      substituteInPlace "$f" --replace-fail "/usr/share/qoder/qoder" "$out/bin/qoder"
+      substituteInPlace "$f" --replace-fail "/usr/share/qoder-ide/qoder-ide" "$out/bin/qoder-ide"
     done
     runHook postInstall
   '';
 
   postFixup = ''
-    wrapProgram "$out/share/qoder/qoder" \
+    wrapProgram "$out/share/qoder-ide/qoder-ide" \
       --add-flags "--no-sandbox" \
       --add-flags "--password-store=gnome-libsecret" \
       --prefix PATH : "${bubblewrap}/bin" \
@@ -138,9 +143,16 @@ stdenv.mkDerivation {
 
   meta = {
     description = "Agentic AI coding platform for real software development";
+    longDescription = ''
+      Qoder IDE is the desktop IDE of the Qoder agentic coding platform. This
+      package installs the IDE itself; the separately distributed Qoder app and
+      the standalone `qoder` CLI are not included. The IDE's own CLI bridge
+      lives at `$out/share/qoder-ide/bin/qoder`.
+    '';
     homepage = "https://qoder.com";
+    changelog = "https://qoder.com/zh/changelog?type=ide";
     license = lib.licenses.unfree;
-    mainProgram = "qoder";
+    mainProgram = "qoder-ide";
     platforms = [ "x86_64-linux" ];
     sourceProvenance = [ lib.sourceTypes.binaryNativeCode ];
     maintainers = [ ];
