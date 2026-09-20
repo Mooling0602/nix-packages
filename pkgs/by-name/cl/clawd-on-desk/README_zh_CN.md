@@ -6,7 +6,7 @@
 
 ## 维护说明
 
-当前版本：1.0.0。上游发布新版本后，更新 `package.nix` 中的 `version` 和 `hash`。Linux 资产名为：
+当前版本：1.1.0。上游发布新版本后，更新 `package.nix` 中的 `version` 和 `hash`。Linux 资产名为：
 
 ```sh
 Clawd-on-Desk-<version>-amd64.deb
