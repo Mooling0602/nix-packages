@@ -58,6 +58,24 @@ buildNpmPackage {
       $out/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-terminal-bash/lib/index.js \
       --replace-fail '"/bin/bash"' '"${lib.getExe bashInteractive}"'
 
+    # The runtime profile resolver drives Node's internal module loader through
+    # the prebuilt `node-addon-require-builtin` N-API binary, which locates V8's
+    # `builtin_module_require` getter by pattern-matching the machine code of a
+    # known Node build. nixpkgs compiles Node with GCC, whose codegen for that
+    # getter differs from the upstream release binaries (an extra `xor edi,edi`
+    # before `ret`), so every `requireBuiltin` call fails with
+    # `Unsupported/no-getter (x64 sysv getter is not a recognized this->field
+    # accessor)` and boot aborts. Fall back to the pure-JS `link` resolution
+    # mode, which was upstream's default before 0.1.6-alpha.2 (commit
+    # 9ddef327a) and needs no native addon. This package ships the compiled
+    # bundle, so patch the output chunk (its hash suffix changes between
+    # releases, hence the glob).
+    substituteInPlace \
+      $out/lib/node_modules/@deepseek-ai/dsh/lib/profile-boot-*.js \
+      --replace-fail \
+        'options.resolutionMode ?? "runtime"' \
+        'options.resolutionMode ?? "link"'
+
     rm $out/bin/dsh
     # dsh-sandbox-local probes `bwrap` from PATH for its preferred Linux
     # sandbox backend (chain: bwrap, then landlock).

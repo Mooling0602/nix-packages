@@ -34,3 +34,20 @@ to:
 The update script regenerates the vendored `package-lock.json` and prefetches
 the new `sourceHash`. No dependency hash has to be probed: `importNpmLock`
 derives the dependency set from the lockfile.
+
+## NixOS note: `link` profile resolution
+
+The runtime profile resolver drives Node's internal module loader through the
+prebuilt `node-addon-require-builtin` N-API binary, which locates V8's
+`builtin_module_require` getter by pattern-matching the machine code of a known
+Node build. nixpkgs compiles Node with GCC, whose codegen for that getter
+differs from the upstream release binaries (an extra `xor edi,edi` before
+`ret`), so every `requireBuiltin` call fails with `Unsupported/no-getter (x64
+sysv getter is not a recognized this->field accessor)` and boot aborts with
+`host preparation failed`.
+
+`postInstall` therefore patches the shipped bundle
+(`lib/profile-boot-*.js`) to default to the pure-JS `link` resolution mode,
+which was upstream's default before 0.1.6-alpha.2 (commit `9ddef327a`) and
+needs no native addon. Drop that `substituteInPlace` from `package.nix` once
+upstream either tolerates the GCC codegen or makes `link` the default again.
