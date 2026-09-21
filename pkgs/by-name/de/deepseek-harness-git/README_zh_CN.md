@@ -7,7 +7,7 @@ agent 框架与 CLI，从上游 git 发布标签**源码构建**。与
 [deepseek-harness](../deepseek-harness)（npm tarball）不同，本包追踪 `dsh-v*`
 标签，因此可以提供未发布到 npm 的预发布版（如 `0.1.2-alpha.1`）。
 
-当前版本：0.1.6-alpha.1。
+当前版本：0.1.6-alpha.2。
 
 构建流程与上游发布工作流一致：由 `importPnpmLock` 把 vendored 的
 `pnpm-lock.yaml` 转换为逐包 tarball 缓存，固定版本的 pnpm 通过本地重放
