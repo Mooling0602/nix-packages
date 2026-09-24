@@ -24,7 +24,7 @@ the app in native Wayland mode.
 
 ## Maintenance notes
 
-Current version: 0.3.4. When a newer version is available upstream, you may
+Current version: 0.4.2. When a newer version is available upstream, you may
 wait for this package to be updated, or open an Issue to request it.
 
 When upstream releases a new version, update the `version` and `hash` in

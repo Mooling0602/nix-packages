@@ -13,7 +13,7 @@ either. The IDE's own CLI bridge is available as
 
 ## Maintenance notes
 
-Current version: 1.31.0. When a newer version is available upstream, you may
+Current version: 1.32.0. When a newer version is available upstream, you may
 wait for this package to be updated, or open an Issue to request it.
 
 When upstream releases a new version, update the `version` and `hash` in
