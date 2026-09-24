@@ -8,7 +8,7 @@ Unlike [deepseek-harness](../deepseek-harness) (npm tarball), this package
 tracks the `dsh-v*` tags, so it can ship pre-releases that never reach npm
 (e.g. `0.1.2-alpha.1`).
 
-Current version: 0.1.6-alpha.2.
+Current version: 0.1.7-rc.1.
 
 The build mirrors the upstream release workflow: `importPnpmLock` turns the
 vendored `pnpm-lock.yaml` into a per-package tarball cache that the pinned pnpm
@@ -24,7 +24,7 @@ The output is large (~1.4 GB) because the dev toolchain stays in `node_modules`;
 a pruned production-only install would break pnpm's symlink layout guarantees
 and is intentionally not attempted.
 
-## NixOS note: `link` profile resolution
+## NixOS note: internal module loader access
 
 The runtime profile resolver drives Node's internal module loader through the
 prebuilt `node-addon-require-builtin` N-API binary, which locates V8's
@@ -35,11 +35,15 @@ differs from the upstream release binaries (an extra `xor edi,edi` before
 sysv getter is not a recognized this->field accessor)` and boot aborts with
 `host preparation failed`.
 
-The build therefore patches `apps/cli/src/profile-boot.ts` to fall back to the
-pure-JS `link` resolution mode, which was upstream's default before
-0.1.6-alpha.2 (commit `9ddef327a`) and needs no native addon. Drop that
-`substituteInPlace` from `package.nix` once upstream either tolerates the GCC
-codegen or makes `link` the default again.
+Upstream removed the pure-JS `link` resolution mode in 0.1.7, leaving the
+native addon as the only path. The launcher already passes
+`--expose-internals`, which exposes the very same internal modules through a
+plain `require`, so the build patches the addon's entry
+(`node-addon-require-builtin/lib/index.js`) to try `require(moduleId)` first and
+fall back to the native addon — the same order upstream's own vendored Cordis
+loader uses (`vendor/loader/src/internal.ts`). Drop that `substituteInPlace`
+from `package.nix` once upstream either tolerates the GCC codegen or exposes
+the loader without the addon.
 
 ## Update
 

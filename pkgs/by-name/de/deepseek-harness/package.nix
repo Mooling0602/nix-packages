@@ -34,6 +34,18 @@ let
     node -e 'const fs=require("fs");const f=process.argv[1];const p=JSON.parse(fs.readFileSync(f));delete p.devDependencies;fs.writeFileSync(f,JSON.stringify(p,null,2)+"\n")' $out/package.json
   '';
 
+  # The runtime resolver reaches Node's internal module loader through the
+  # prebuilt `node-addon-require-builtin` binary, which cannot locate V8's
+  # `builtin_module_require` getter in nixpkgs' GCC-built Node (see
+  # postInstall). The launcher already passes `--expose-internals`, so the
+  # accessor can fall back to a plain `require` before touching the addon.
+  addonRequireBuiltin = "    return api.requireBuiltin(moduleId);";
+  addonRequireBuiltinPatched =
+    "    if (process.execArgv.includes('--expose-internals')) {\n"
+    + "      try { return require(moduleId); } catch (_error) {}\n"
+    + "    }\n"
+    + "    return api.requireBuiltin(moduleId);";
+
 in
 buildNpmPackage {
   inherit pname version src;
@@ -58,23 +70,24 @@ buildNpmPackage {
       $out/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-terminal-bash/lib/index.js \
       --replace-fail '"/bin/bash"' '"${lib.getExe bashInteractive}"'
 
-    # The runtime profile resolver drives Node's internal module loader through
-    # the prebuilt `node-addon-require-builtin` N-API binary, which locates V8's
-    # `builtin_module_require` getter by pattern-matching the machine code of a
-    # known Node build. nixpkgs compiles Node with GCC, whose codegen for that
-    # getter differs from the upstream release binaries (an extra `xor edi,edi`
-    # before `ret`), so every `requireBuiltin` call fails with
-    # `Unsupported/no-getter (x64 sysv getter is not a recognized this->field
-    # accessor)` and boot aborts. Fall back to the pure-JS `link` resolution
-    # mode, which was upstream's default before 0.1.6-alpha.2 (commit
-    # 9ddef327a) and needs no native addon. This package ships the compiled
-    # bundle, so patch the output chunk (its hash suffix changes between
-    # releases, hence the glob).
-    substituteInPlace \
-      $out/lib/node_modules/@deepseek-ai/dsh/lib/profile-boot-*.js \
-      --replace-fail \
-        'options.resolutionMode ?? "runtime"' \
-        'options.resolutionMode ?? "link"'
+    # 0.1.7 removed upstream's pure-JS `link` profile resolution mode, so the
+    # runtime resolver now reaches Node's internal module loader exclusively
+    # through the prebuilt `node-addon-require-builtin` N-API binary. That
+    # binary locates V8's `builtin_module_require` getter by pattern-matching
+    # the machine code of a known Node build; nixpkgs compiles Node with GCC,
+    # whose codegen for that getter differs from the upstream release binaries
+    # (an extra `xor edi,edi` before `ret`), so every `requireBuiltin` call
+    # fails with `Unsupported/no-getter (x64 sysv getter is not a recognized
+    # this->field accessor)` and boot aborts. `--expose-internals` exposes the
+    # very same internal modules through a plain `require`, so try that first
+    # and fall back to the native addon — the same order the vendored Cordis
+    # loader uses (vendor/loader/src/internal.ts). Patch the addon package
+    # rather than the compiled resolver chunk: its entry file name is stable
+    # across releases and is shared by the host and the Worker bootstrap.
+    while IFS= read -r addonEntry; do
+      substituteInPlace "$addonEntry" \
+        --replace-fail "${addonRequireBuiltin}" "${addonRequireBuiltinPatched}"
+    done < <(find "$out" -path '*node-addon-require-builtin/lib/index.js' -type f)
 
     rm $out/bin/dsh
     # dsh-sandbox-local probes `bwrap` from PATH for its preferred Linux

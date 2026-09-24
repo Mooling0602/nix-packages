@@ -6,7 +6,7 @@
 agent harness and CLI — packaged from the official npm tarball with a pinned
 dependency lockfile.
 
-Current version: 0.1.6-alpha.2.
+Current version: 0.1.7-rc.1.
 
 The package is built with `buildNpmPackage`: it pulls the `@deepseek-ai/dsh`
 tarball, injects the vendored `package-lock.json`, and produces the `dsh`
@@ -35,7 +35,7 @@ The update script regenerates the vendored `package-lock.json` and prefetches
 the new `sourceHash`. No dependency hash has to be probed: `importNpmLock`
 derives the dependency set from the lockfile.
 
-## NixOS note: `link` profile resolution
+## NixOS note: internal module loader access
 
 The runtime profile resolver drives Node's internal module loader through the
 prebuilt `node-addon-require-builtin` N-API binary, which locates V8's
@@ -46,8 +46,12 @@ differs from the upstream release binaries (an extra `xor edi,edi` before
 sysv getter is not a recognized this->field accessor)` and boot aborts with
 `host preparation failed`.
 
-`postInstall` therefore patches the shipped bundle
-(`lib/profile-boot-*.js`) to default to the pure-JS `link` resolution mode,
-which was upstream's default before 0.1.6-alpha.2 (commit `9ddef327a`) and
-needs no native addon. Drop that `substituteInPlace` from `package.nix` once
-upstream either tolerates the GCC codegen or makes `link` the default again.
+Upstream removed the pure-JS `link` resolution mode in 0.1.7, leaving the
+native addon as the only path. The launcher already passes
+`--expose-internals`, which exposes the very same internal modules through a
+plain `require`, so `postInstall` patches the addon's entry
+(`node-addon-require-builtin/lib/index.js`) to try `require(moduleId)` first and
+fall back to the native addon — the same order upstream's own vendored Cordis
+loader uses (`vendor/loader/src/internal.ts`). Drop that `substituteInPlace`
+from `package.nix` once upstream either tolerates the GCC codegen or exposes
+the loader without the addon.

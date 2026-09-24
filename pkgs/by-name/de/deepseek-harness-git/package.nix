@@ -65,6 +65,18 @@ let
     lockFile = ./pnpm-lock.yaml;
   };
 
+  # The runtime resolver reaches Node's internal module loader through the
+  # prebuilt `node-addon-require-builtin` binary, which cannot locate V8's
+  # `builtin_module_require` getter in nixpkgs' GCC-built Node (see
+  # installPhase). The launcher already passes `--expose-internals`, so the
+  # accessor can fall back to a plain `require` before touching the addon.
+  addonRequireBuiltin = "    return api.requireBuiltin(moduleId);";
+  addonRequireBuiltinPatched =
+    "    if (process.execArgv.includes('--expose-internals')) {\n"
+    + "      try { return require(moduleId); } catch (_error) {}\n"
+    + "    }\n"
+    + "    return api.requireBuiltin(moduleId);";
+
   # The dsh CLI (apps/cli) resolves its ~90 workspace dependencies through the
   # relative symlinks pnpm created in node_modules, and its `dsh.configTrees`
   # manifest reaches into ../../packages/preset/... — so the whole repository
@@ -94,21 +106,6 @@ stdenv.mkDerivation (finalAttrs: {
   buildPhase = ''
     runHook preBuild
 
-    # The runtime profile resolver drives Node's internal module loader through
-    # the prebuilt `node-addon-require-builtin` N-API binary, which locates V8's
-    # `builtin_module_require` getter by pattern-matching the machine code of a
-    # known Node build. nixpkgs compiles Node with GCC, whose codegen for that
-    # getter differs from the upstream release binaries (an extra `xor edi,edi`
-    # before `ret`), so every `requireBuiltin` call fails with
-    # `Unsupported/no-getter (x64 sysv getter is not a recognized this->field
-    # accessor)` and boot aborts. Fall back to the pure-JS `link` resolution
-    # mode, which was upstream's default before 0.1.6-alpha.2 (commit
-    # 9ddef327a) and needs no native addon.
-    substituteInPlace apps/cli/src/profile-boot.ts \
-      --replace-fail \
-        "const resolutionMode = packaged ? 'runtime' : options.resolutionMode ?? 'runtime'" \
-        "const resolutionMode = packaged ? 'runtime' : options.resolutionMode ?? 'link'"
-
     # pnpmConfigHook already ran `pnpm install --offline` in postConfigure.
     # Full workspace build: tsc project build + tsdown bundles (lib) and the
     # vite frontend (web), exactly like the upstream release workflow.
@@ -128,6 +125,25 @@ stdenv.mkDerivation (finalAttrs: {
     # not materialize (dev tooling like @oxlint-tsgolint and the aliased
     # @openai/codex platform alias; the published npm package ships neither).
     find "$out/lib/${pname}" -xtype l -delete
+
+    # 0.1.7 removed upstream's pure-JS `link` profile resolution mode, so the
+    # runtime resolver now reaches Node's internal module loader exclusively
+    # through the prebuilt `node-addon-require-builtin` N-API binary. That
+    # binary locates V8's `builtin_module_require` getter by pattern-matching
+    # the machine code of a known Node build; nixpkgs compiles Node with GCC,
+    # whose codegen for that getter differs from the upstream release binaries
+    # (an extra `xor edi,edi` before `ret`), so every `requireBuiltin` call
+    # fails with `Unsupported/no-getter (x64 sysv getter is not a recognized
+    # this->field accessor)` and boot aborts. `--expose-internals` exposes the
+    # very same internal modules through a plain `require`, so try that first
+    # and fall back to the native addon — the same order the vendored Cordis
+    # loader uses (vendor/loader/src/internal.ts). Patch the addon package
+    # rather than upstream's resolver source: its entry file is stable across
+    # releases and is shared by the host and the Worker resolution bootstrap.
+    while IFS= read -r addonEntry; do
+      substituteInPlace "$addonEntry" \
+        --replace-fail "${addonRequireBuiltin}" "${addonRequireBuiltinPatched}"
+    done < <(find "$out/lib/${pname}" -path '*node-addon-require-builtin/lib/index.js' -type f)
 
     # /bin/bash does not exist on NixOS (issue #8086)
     substituteInPlace \
