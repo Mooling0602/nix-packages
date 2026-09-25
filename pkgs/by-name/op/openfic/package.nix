@@ -7,7 +7,7 @@
 }:
 
 let
-  version = "0.11.1";
+  version = "0.12.0";
 
   # Upstream is an electron-builder distribution. The Python backend is not
   # shipped in the tarball: the desktop app downloads a python-build-standalone
@@ -21,7 +21,7 @@ let
 
     src = fetchurl {
       url = "https://github.com/syrizelink/OpenFic/releases/download/v${version}/OpenFic-${version}-linux-x86_64.tar.gz";
-      hash = "sha256-ZWUwdC9+SecI/+1hH292kFCWYjKPpOmHgVPOkvRwuGI=";
+      hash = "sha256-zRhJhaTJlZsHrwpx0sRV48rET5HocoDGHSp4Fnwh5RA=";
     };
 
     sourceRoot = "OpenFic-${version}-linux-x64";
