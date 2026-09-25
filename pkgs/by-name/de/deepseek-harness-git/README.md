@@ -8,7 +8,7 @@ Unlike [deepseek-harness](../deepseek-harness) (npm tarball), this package
 tracks the `dsh-v*` tags, so it can ship pre-releases that never reach npm
 (e.g. `0.1.2-alpha.1`).
 
-Current version: 0.1.7-rc.1.
+Current version: 0.1.7-rc.2.
 
 The build mirrors the upstream release workflow: `importPnpmLock` turns the
 vendored `pnpm-lock.yaml` into a per-package tarball cache that the pinned pnpm
