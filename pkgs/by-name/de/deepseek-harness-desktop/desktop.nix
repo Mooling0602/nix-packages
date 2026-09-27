@@ -43,7 +43,7 @@
 #     accepted silently. Both are therefore derived at build time (see 3a in the
 #     install phase) rather than written down in package.nix.
 #
-#  4. Two environment variables are required at launch; the wrapper sets both.
+#  4. Three environment details are load-bearing; the wrapper sets all three.
 #     CHROME_DEVEL_SANDBOX points Chromium at its setuid sandbox helper, exactly
 #     as nixpkgs' own electron wrapper does. Without it the process dies on
 #     SIGILL before printing anything, and the only alternative is --no-sandbox,
@@ -53,6 +53,15 @@
 #     they do not inherit the Electron binary's RPATH; without it the Host aborts
 #     with "No usable native binding found for
 #     node-addon-require-builtin-linux-x64-gnu".
+#
+#     PATH additionally carries bubblewrap, because dsh's own platform sandbox
+#     probes for it first on Linux (chain: bwrap, then landlock) and refuses to
+#     run a command unconfined when neither backend is usable. The landlock
+#     launcher's optional platform package is not materialized by the offline
+#     pnpm install, so without bwrap every workspace-write command fails with
+#     SANDBOX_UNAVAILABLE and the desktop app can only ask for escalation.
+#     Electron's chrome-sandbox is unrelated: it confines renderers, not the
+#     commands the model runs.
 {
   lib
 , stdenvNoCC
@@ -61,6 +70,7 @@
 , makeDesktopItem
 , copyDesktopItems
 , nodejs
+, bubblewrap
 , python
 , glib
 , gtk3
@@ -339,7 +349,7 @@ stdenvNoCC.mkDerivation {
     makeWrapper "$out/deepseek-harness" "$out/bin/deepseek-harness" \
       --set CHROME_DEVEL_SANDBOX "$out/chrome-sandbox" \
       --prefix LD_LIBRARY_PATH : "${runtimeLibraryPath}" \
-      --prefix PATH : "${nodejs}/bin" \
+      --prefix PATH : "${lib.makeBinPath [ nodejs bubblewrap ]}" \
       --prefix XDG_DATA_DIRS : "${xdgDataDirs}" \
       --prefix GSETTINGS_SCHEMAS_PATH : "${gsettingsSchemasPath}"
 

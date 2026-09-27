@@ -17,6 +17,7 @@
 {
   lib
 , callPackage
+, bubblewrap
 , electron_44
 , nodejs_24
 , python312
@@ -191,7 +192,7 @@ callPackage ./desktop.nix {
   inherit lib stdenvNoCC version pnpmVersion;
   electron = electron_44;
   nodejs = nodejs_24;
-  inherit nodeRuntimeVersion;
+  inherit bubblewrap nodeRuntimeVersion;
   # Build-time helpers, and the upstream sources they read. The two guards fail
   # the build when an upstream bump changes something these lists assume, which
   # is what makes an unattended version bump safe to trust.
