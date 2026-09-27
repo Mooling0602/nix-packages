@@ -34,6 +34,7 @@ Mooling0602's [NUR](https://github.com/nix-community/NUR) repository. May includ
 | [`clawd-on-desk`](pkgs/by-name/cl/clawd-on-desk/README.md) | Desktop companion pet that reacts to AI coding assistant sessions in real time (x86_64-linux only) |
 | [`deepseek-harness`](pkgs/by-name/de/deepseek-harness/README.md) | DeepSeek Harness (`dsh`), an open-source agent harness and CLI, from the official npm tarball |
 | [`deepseek-harness-git`](pkgs/by-name/de/deepseek-harness-git/README.md) | DeepSeek Harness (`dsh`), an open-source agent harness and CLI, from the GitHub source tarball |
+| [`deepseek-harness-desktop`](pkgs/by-name/de/deepseek-harness-desktop/README.md) | DeepSeek Harness (`dsh`) as an Electron desktop application, assembled for Linux from the upstream `apps/desktop` build (x86_64-linux only) |
 | [`niri-input-portal`](pkgs/by-name/ni/niri-input-portal/README.md) | xdg-desktop-portal InputCapture backend that lets Deskflow-style keyboard/mouse sharing software push this machine's input and clipboard to another computer under niri, built from source with a local patch (MIT, Linux) |
 | [`openfic`](pkgs/by-name/op/openfic/README.md) | OpenFic, an AI-native writing tool for fiction authors, from the official tar.gz release (Apache-2.0, x86_64-linux only) |
 | [`openfic-git`](pkgs/by-name/op/openfic-git/README.md) | OpenFic desktop built from upstream `main` with nixpkgs Electron, no FHS sandbox (Apache-2.0, x86_64-linux, requires nix-ld) |
