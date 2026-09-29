@@ -45,13 +45,15 @@ resources/runtime/primary-runtime/          interpreters + Python libraries
 resources/icon.png                          window/taskbar icon
 ```
 
-`desktop.nix` documents the four load-bearing details of this layout, each
+`desktop.nix` documents the five load-bearing details of this layout, each
 verified experimentally against the unmodified upstream application. In short:
 the Electron binary must not be named `electron` (that name makes Electron
 report `app.isPackaged === false`); the runtime belongs at
 `resources/app/dsh`, not `resources/dsh`; the descriptor is checked by the
-application; and `CHROME_DEVEL_SANDBOX` plus a `LD_LIBRARY_PATH` carrying
-libstdc++ are required at launch.
+application; `CHROME_DEVEL_SANDBOX` plus a `LD_LIBRARY_PATH` carrying
+libstdc++ are required at launch; and sharp's native addon needs a dynamically
+linked libvips, which the package substitutes under the name the addon asks for
+because the prebuilt one statically embeds its own glib and segfaults the Host.
 
 ## Versions are derived, not restated
 
