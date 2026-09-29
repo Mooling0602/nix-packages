@@ -12,7 +12,7 @@
 # the build cost, not closure size, that forces the split.)
 #
 # Only the desktop assembly is new here; desktop.nix documents the on-disk
-# layout and the four load-bearing details, each verified against the unmodified
+# layout and the five load-bearing details, each verified against the unmodified
 # upstream application.
 {
   lib
@@ -20,8 +20,10 @@
 , bubblewrap
 , electron_44
 , nodejs_24
+, patchelf
 , python312
 , stdenvNoCC
+, vips
 }:
 
 let
@@ -187,6 +189,77 @@ let
       runHook postInstall
     '';
   };
+
+  # pkgs.vips' default output is bin, so read the out output, which is where
+  # libvips-cpp lives. It comes from whichever nixpkgs the consumer passes, and
+  # sharpLibvips below is what makes that safe: note 5 in desktop.nix records why
+  # the addon's own DT_NEEDED name does not pin a version.
+  vipsLib = lib.getLib vips;
+
+  # sharp's native addon crashes with the libvips it ships with (note 5 in
+  # desktop.nix), so this stages a substitute under the exact name the addon asks
+  # for. The name is read out of the addon rather than restated here, so a sharp
+  # bump that moves to a new libvips series fails this build instead of
+  # segfaulting the app at run time, and it is checked against the vips this
+  # package links for the same reason.
+  #
+  # A symlink, not a copy: the addon only needs the name it asks for to be
+  # findable on LD_LIBRARY_PATH, and the loader then maps the real library with
+  # the substituted build's own RUNPATH intact.
+  sharpLibvips = stdenvNoCC.mkDerivation {
+    pname = "deepseek-harness-desktop-sharp-libvips";
+    inherit version;
+
+    dontUnpack = true;
+    dontConfigure = true;
+    dontBuild = true;
+    dontFixup = true;
+
+    nativeBuildInputs = [ patchelf ];
+
+    installPhase = ''
+      runHook preInstall
+      addon="$(ls ${outPath}/node_modules/.pnpm/@img+sharp-linux-x64@*/node_modules/@img/sharp-linux-x64/lib/sharp-linux-x64-*.node)"
+      if [ "$(printf '%s\n' "$addon" | wc -l)" -ne 1 ]; then
+        echo "desktop: expected exactly one sharp addon under ${outPath}/node_modules/.pnpm, got: $addon" >&2
+        exit 1
+      fi
+
+      soname="$(patchelf --print-needed "$addon" | grep -E '^libvips-cpp[.]so[.]' || true)"
+      if [ -z "$soname" ] || [ "$(printf '%s\n' "$soname" | wc -l)" -ne 1 ]; then
+        echo "desktop: expected one libvips-cpp DT_NEEDED entry in $addon, got: $soname" >&2
+        exit 1
+      fi
+
+      # libvips keeps ABI within a stable series and says so in its soname: the
+      # ABI name is libvips-cpp.so.42, and the upstream patch version is the last
+      # field of the versioned file (42.20.3 for the addon's 8.18.3), i.e. a
+      # libtool revision change, which by definition carries no interface change.
+      # Any release of the addon's own major.minor series is therefore a valid
+      # substitute; another series is not, and fails here rather than at the
+      # first raster operation.
+      addon_series="''${soname#libvips-cpp.so.}"
+      addon_series="''${addon_series%.*}"
+      vips_series="${lib.versions.majorMinor vips.version}"
+      if [ "$addon_series" != "$vips_series" ]; then
+        echo "desktop: sharp's addon requires $soname (series $addon_series), but this package links vips ${vips.version} (series $vips_series)" >&2
+        echo "desktop: the substitute must be the same upstream stable series as the libvips that prebuilt addon was linked against; move vips to the addon's series, then re-run this build and its sharp probe (note 5 in desktop.nix)" >&2
+        exit 1
+      fi
+
+      # The real file, not the unversioned symlink, so the loader reports the
+      # versioned name in its trace and the check below stays exact.
+      set -- $(find ${vipsLib}/lib -maxdepth 1 -type f -name 'libvips-cpp.so.*')
+      if [ "$#" -ne 1 ]; then
+        echo "desktop: expected one libvips-cpp.so.* in ${vipsLib}/lib, found $#" >&2
+        exit 1
+      fi
+      mkdir -p "$out/lib"
+      ln -s "$1" "$out/lib/$soname"
+      test -e "$out/lib/$soname"
+      runHook postInstall
+    '';
+  };
 in
 callPackage ./desktop.nix {
   inherit lib stdenvNoCC version pnpmVersion;
@@ -204,7 +277,7 @@ callPackage ./desktop.nix {
   pythonVersion = python312.version;
   inherit pythonPackages;
   appRoot = "${outPath}/apps/desktop";
-  inherit dshRuntimeTree appModulesTree;
+  inherit dshRuntimeTree appModulesTree sharpLibvips;
   pnpmRoot = "${outPath}/node_modules/pnpm";
   skillOfficeAssets = "${outPath}/packages/skill/skill-office/assets";
 }

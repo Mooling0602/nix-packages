@@ -12,7 +12,7 @@
 #   resources/runtime/primary-runtime/          interpreters + Python libraries
 #   resources/icon.png                          window/taskbar icon
 #
-# Four details are load-bearing; each was verified experimentally against the
+# Five details are load-bearing; each was verified experimentally against the
 # unmodified upstream application.
 #
 #  1. The Electron binary must NOT be named 'electron'. Electron treats an
@@ -52,7 +52,8 @@
 #     (node-addon-native-custom-loader copies them out of the store first), so
 #     they do not inherit the Electron binary's RPATH; without it the Host aborts
 #     with "No usable native binding found for
-#     node-addon-require-builtin-linux-x64-gnu".
+#     node-addon-require-builtin-linux-x64-gnu". It also carries the substituted
+#     libvips directory, first, which note 5 explains.
 #
 #     PATH additionally carries bubblewrap, because dsh's own platform sandbox
 #     probes for it first on Linux (chain: bwrap, then landlock) and refuses to
@@ -62,6 +63,68 @@
 #     SANDBOX_UNAVAILABLE and the desktop app can only ask for escalation.
 #     Electron's chrome-sandbox is unrelated: it confines renderers, not the
 #     commands the model runs.
+#
+#  5. sharp's native addon cannot run the libvips it ships with, so the package
+#     substitutes a dynamically linked one. The addon
+#     (node_modules/.pnpm/@img+sharp-linux-x64@*/.../sharp-linux-x64-<v>.node)
+#     requires a prebuilt libvips-cpp.so.8.18.3 that statically embeds its own
+#     glib: it exports 1791 g_* symbols and has no libglib-2.0.so.0 in its
+#     DT_NEEDED. Electron on Linux links a dynamically linked glib, and the
+#     addon's own seven glib references (g_object_ref, g_object_unref,
+#     g_signal_connect_data, g_malloc, g_free, g_log_set_handler,
+#     g_utf8_validate) resolve out of the global scope, where Electron's
+#     already-loaded copy is found before the libvips the addon's DT_NEEDED
+#     names. So the addon calls Electron's glib on GObjects that the embedded
+#     glib created, and the first raster operation dies with SIGSEGV. That is the
+#     failure the desktop writes to
+#     ~/.config/@deepseek-ai/dsh-desktop/logs/crash-<time>-host.log as "dsh
+#     desktop host stopped", with only sharp's own [SharpElectronLinux] warning
+#     on the captured stderr. Reproduced in isolation: a 4x4
+#     sharp({ create }).png().toBuffer() under ELECTRON_RUN_AS_NODE=1
+#     ./deepseek-harness exits 139, and preloading glib into a plain Node 24.20.0
+#     makes the same pipeline exit 139 there too, while Node 24.20.0 alone exits
+#     0. LD_DEBUG=bindings names the wrong library on the addon's g_object_ref
+#     and g_object_unref bindings; sharp documents the same conflict under
+#     "Electron and Linux" (https://sharp.pixelplumbing.com/install) and tracks
+#     it upstream as electron#46323.
+#
+#     sharpLibvips (package.nix) therefore supplies the one thing the addon is
+#     missing: a dynamically linked libvips reachable under the addon's own
+#     DT_NEEDED name. The addon resolves libvips through DT_RUNPATH (verified
+#     with readelf -d, not DT_RPATH), and LD_LIBRARY_PATH is searched first, so
+#     exporting that directory is enough to make the addon load it instead of the
+#     prebuilt library. The substitute links glib dynamically, and the loader
+#     resolves its libglib-2.0.so.0 to the copy Electron already loaded, which
+#     leaves one glib and one GObject type system in the process. The wrapper
+#     prepends the directory to LD_LIBRARY_PATH. Nothing in the build exercises
+#     that path, so re-check it by hand after an Electron, sharp or vips bump:
+#     under ELECTRON_RUN_AS_NODE=1 any sharp raster operation has to exit 0,
+#     where the prebuilt libvips exits 139.
+#
+#     The addon's DT_NEEDED fixes the name this package must provide and nothing
+#     about the library behind it, so the substitute is the vips the package
+#     already links -- whichever nixpkgs the consumer passes, which is 8.18.6 on
+#     nixos-unstable where the addon asks for 8.18.3. That is safe because
+#     libvips keeps ABI within a stable series and expresses it in its soname.
+#     The ABI name is libvips-cpp.so.42, identical in both builds, and the
+#     upstream patch version is the last field of the versioned file, 42.20.3 for
+#     8.18.3 against 42.20.6 for 8.18.6, i.e. a libtool revision change, which by
+#     definition carries no interface change. Measured on those two builds: the
+#     C++ binding exports the same 564 symbols with identical sizes, the C API the
+#     same 1712, and abidiff reports no change. sharpLibvips still refuses any
+#     other major.minor series, so a vips bump to 8.19 or 9.x fails the build in
+#     a place that names both versions instead of segfaulting the app. The
+#     sibling flake pins vips 8.18.3 from a stable input instead, for an
+#     exact-version match; that is rejected here because this repository
+#     publishes to NUR consumers who bring their own nixpkgs, and the series
+#     guard is what makes that safe.
+#
+#     Two alternatives were tried and rejected. Localizing the prebuilt libvips'
+#     glib symbols removes the interposition but not the crash: the addon's own
+#     references then bind to Electron's glib and it still exits 139. The
+#     WebAssembly build is not installed by the offline pnpm install, sharp only
+#     falls back to it when the native addon fails to load, and it gives up
+#     native text rendering and tiled output.
 {
   lib
 , stdenvNoCC
@@ -98,6 +161,8 @@
   # Already-assembled resources/app/{dsh,node_modules} trees.
 , dshRuntimeTree
 , appModulesTree
+  # libvips staged under the name sharp's prebuilt addon asks for (note 5).
+, sharpLibvips
   # pnpm CLI payload and the Office skill assets.
 , pnpmRoot
 , skillOfficeAssets
@@ -122,8 +187,12 @@ let
 
   # libstdc++ must be on LD_LIBRARY_PATH (see note 4): the Node-API addon is
   # dlopen()ed out of a per-user cache directory, so it does not inherit the
-  # Electron binary's RPATH.
-  runtimeLibraryPath = lib.makeLibraryPath [ glib gtk3 stdenv.cc.cc.lib ];
+  # Electron binary's RPATH. sharpLibvips comes first so that the addon finds the
+  # substituted libvips before its own DT_RUNPATH does (see note 5).
+  runtimeLibraryPath = lib.concatStringsSep ":" [
+    "${sharpLibvips}/lib"
+    (lib.makeLibraryPath [ glib gtk3 stdenv.cc.cc.lib ])
+  ];
 
   pythonMajorMinor = lib.versions.majorMinor pythonVersion;
   pythonSitePackages = "${python}/lib/python${pythonMajorMinor}/site-packages";
