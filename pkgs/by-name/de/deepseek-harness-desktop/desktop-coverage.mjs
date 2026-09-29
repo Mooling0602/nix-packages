@@ -14,7 +14,7 @@
  */
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs"
 import { isBuiltin } from "node:module"
-import { join, relative } from "node:path"
+import { dirname, join, relative } from "node:path"
 
 /**
  * Every specifier form a bundle can leave external: `from` (static and
@@ -82,12 +82,24 @@ function checkApplication(root) {
 
 function checkHostDependencies(runtimeRoot, manifestPath) {
   const manifest = JSON.parse(readFileSync(manifestPath, "utf8"))
+  // The two dependency kinds are staged in different places, because they are
+  // reached in different ways. A scoped package becomes a plugin loaded through
+  // the runtime tree, so package.nix links it into that tree's scope. A bare
+  // name is resolved by Node itself, relative to the Host entry point, and the
+  // root package's own manifest is the exact witness for that lookup -- the
+  // entry point follows its symlink into the shared store tree, where the
+  // sibling node_modules is the one Node consults. Joining a bare name onto the
+  // scope instead points at @deepseek-ai/koffi, which never exists, and fails
+  // the build for a package that is in fact present.
   const scope = join(runtimeRoot, "node_modules", "@deepseek-ai")
+  const besideManifest = join(dirname(manifestPath), "node_modules")
   const dependencies = Object.keys(manifest.dependencies ?? {})
   const offenders = []
   for (const name of dependencies) {
-    const local = name.startsWith("@deepseek-ai/") ? name.slice("@deepseek-ai/".length) : name
-    if (!existsSync(join(scope, local))) offenders.push(name)
+    const target = name.startsWith("@deepseek-ai/")
+      ? join(scope, name.slice("@deepseek-ai/".length))
+      : join(besideManifest, name)
+    if (!existsSync(target)) offenders.push(name)
   }
   return { offenders, scanned: dependencies.length }
 }
