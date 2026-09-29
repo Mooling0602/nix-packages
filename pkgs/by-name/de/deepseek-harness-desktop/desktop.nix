@@ -12,6 +12,36 @@
 #   resources/runtime/primary-runtime/          interpreters + Python libraries
 #   resources/icon.png                          window/taskbar icon
 #
+# Beyond assembly, the install phase rewrites the bundled main process with
+# four Linux shell patches (desktop-shell-patch.mjs):
+#
+#   - the tray icon is created on Linux as well (upstream gates it on win32),
+#     registering over StatusNotifierItem like every Electron tray on Linux and
+#     fed with the PNG application icon, because nativeImage decodes PNG and
+#     JPEG only and upstream ships just a Windows ICO for the tray;
+#   - the one-time background-close notice is shown on Linux as well (upstream
+#     gates it on win32), where closing the window hides it to that tray;
+#   - DSH_DESKTOP_HIDE_MENUBAR (default 1) hides the window menu bar through
+#     setMenuBarVisibility, which keeps the application menu and its
+#     accelerators alive; =0 shows the bar. Upstream exposes no control for
+#     this, hence the environment variable;
+#   - SIGINT/SIGTERM quit through the shell's own teardown and the Host spawns
+#     detached (adapted from Moraxyc/deepseek-harness.nix
+#     desktop-signal-shutdown.patch, commit c9999f4): without it a terminal
+#     signal kills the process mid-run and reaches the Host through the shared
+#     process group. Drop it once upstream handles Linux terminal signals.
+#
+# Only resources/app/lib/main.js is rewritten; the upstream sources and every
+# other artifact stay untouched. Each patch asserts an anchor verified to occur
+# exactly once in the bundle, so an upstream bump that moves the code fails the
+# build instead of shipping a half-patched shell.
+#
+# Desktop notifications run through libnotify, which the bundled Electron
+# dlopens by soname at first use rather than linking: a missing library only
+# logs "Unable to find libnotify; notifications disabled". The wrapper puts
+# libnotify on LD_LIBRARY_PATH and step 6a probes exactly that resolution path
+# from inside the shipped binary, so notifications cannot degrade silently.
+#
 # Five details are load-bearing; each was verified experimentally against the
 # unmodified upstream application.
 #
@@ -138,6 +168,7 @@
 , glib
 , gtk3
 , gsettings-desktop-schemas
+, libnotify
 , stdenv
 
 , version
@@ -148,9 +179,11 @@
   # recorded in that payload's manifest and validated by parsePrimaryRuntime().
 , nodeRuntimeVersion
 
-  # Build-time helpers, and the upstream sources they read: the coverage guard
-  # scripts, the Host manifest whose dependencies must all be linked, and the
-  # source file declaring the lifecycle protocol generation.
+  # Build-time helpers, and the upstream sources they read: the shell-patch
+  # script (four Linux patches applied to the bundled main process), the
+  # coverage guard scripts, the Host manifest whose dependencies must all be
+  # linked, and the source file declaring the lifecycle protocol generation.
+, shellPatchScript
 , coverageScript
 , descriptorScript
 , hostManifest
@@ -189,9 +222,16 @@ let
   # dlopen()ed out of a per-user cache directory, so it does not inherit the
   # Electron binary's RPATH. sharpLibvips comes first so that the addon finds the
   # substituted libvips before its own DT_RUNPATH does (see note 5).
+  #
+  # libnotify is here for the same dlopen() reason (see the notification note in
+  # the header): the bundled Electron finds its Linux notification backend by
+  # soname at first use and merely logs "Unable to find libnotify; notifications
+  # disabled" when it cannot. nixpkgs' electron-unwrapped RUNPATHs libnotify
+  # today, but the wrapper does not rely on that; the install phase probes the
+  # shipped binary either way.
   runtimeLibraryPath = lib.concatStringsSep ":" [
     "${sharpLibvips}/lib"
-    (lib.makeLibraryPath [ glib gtk3 stdenv.cc.cc.lib ])
+    (lib.makeLibraryPath [ glib gtk3 libnotify stdenv.cc.cc.lib ])
   ];
 
   pythonMajorMinor = lib.versions.majorMinor pythonVersion;
@@ -314,6 +354,18 @@ stdenvNoCC.mkDerivation {
     find "$app/lib" -name '*.tsbuildinfo' -delete
     cp -a ${appModulesTree} "$app/node_modules"
 
+    # 2a. The four Linux shell patches (see the header and
+    #     desktop-shell-patch.mjs): the tray on Linux with the PNG icon, the
+    #     one-time background-close notice on Linux, the DSH_DESKTOP_HIDE_MENUBAR
+    #     window menu bar hook (default: hidden), and graceful SIGINT/SIGTERM
+    #     shutdown with the Host in its own process group. They
+    #     rewrite $app/lib/main.js only -- the upstream sources and every other
+    #     artifact are untouched -- and each patch asserts its anchor is still
+    #     present exactly once, so an upstream bump that moves the code fails
+    #     here instead of shipping a half-patched shell. The script also runs
+    #     `node --check` over the rewritten bundle.
+    ${nodejs}/bin/node ${shellPatchScript} "$app/lib/main.js"
+
     # 3. The bundled dsh runtime, inside the app directory (see note 2), plus the
     #    descriptor readDesktopRuntime() validates before the Host is started.
     #    cp -a preserves the store's read-only modes, so the tree is made writable
@@ -421,6 +473,37 @@ stdenvNoCC.mkDerivation {
       --prefix PATH : "${lib.makeBinPath [ nodejs bubblewrap ]}" \
       --prefix XDG_DATA_DIRS : "${xdgDataDirs}" \
       --prefix GSETTINGS_SCHEMAS_PATH : "${gsettingsSchemasPath}"
+
+    # 6a. Desktop notifications run through libnotify, which the bundled Electron
+    #     dlopens by soname at first use (its binary carries "libnotify.so",
+    #     "libnotify.so.1", "libnotify.so.4", "libnotify.so.5" and the loader
+    #     shell/browser/notifications/linux/libnotify_notification.cc). A missing
+    #     library fails nothing at run time -- the binary just logs "Unable to
+    #     find libnotify; notifications disabled" -- so the ability degrades
+    #     silently unless it is checked. Probe the same resolution path the
+    #     notification backend uses: dlopen() from inside the shipped binary
+    #     (ELECTRON_RUN_AS_NODE turns it into plain Node), under the
+    #     LD_LIBRARY_PATH the wrapper contributes. libnotify is a plain shared
+    #     library, not a Node addon, so a successful dlopen() surfaces as "did
+    #     not self-register"; anything else counts as unresolvable and, per
+    #     Electron's own loader message, would disable notifications.
+    LD_LIBRARY_PATH="${runtimeLibraryPath}" ELECTRON_RUN_AS_NODE=1 "$out/deepseek-harness" -e '
+      const names = ["libnotify.so", "libnotify.so.1", "libnotify.so.4", "libnotify.so.5"];
+      for (const name of names) {
+        try {
+          process.dlopen({ exports: {} }, name);
+          console.log("desktop: libnotify resolved as " + name);
+          process.exit(0);
+        } catch (error) {
+          if (String(error && error.message).includes("self-register")) {
+            console.log("desktop: libnotify resolved as " + name + " (plain shared library, as expected)");
+            process.exit(0);
+          }
+        }
+      }
+      console.error("desktop: the bundled Electron cannot dlopen() libnotify; desktop notifications would be disabled");
+      process.exit(1);
+    '
 
     runHook postInstall
   '';

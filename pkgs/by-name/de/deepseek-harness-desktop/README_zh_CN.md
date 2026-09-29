@@ -8,7 +8,7 @@
 的 Electron 外壳，重新打包以适配 Linux。上游只发布 Windows 与 macOS 安装包，
 本包为 `x86_64-linux` 产出等价的运行时目录树。
 
-当前版本：0.1.7-rc.2（跟随 [`deepseek-harness-git`](../deepseek-harness-git)）。
+当前版本：0.2.0-rc.2（跟随 [`deepseek-harness-git`](../deepseek-harness-git)）。
 
 ## 这是什么
 
@@ -21,10 +21,41 @@
 因此本包**只重做装配这一步**。它取用 `deepseek-harness-git` 已经构建好的应用
 （与上游构建产出的 `lib/`、`renderer/` 及 workspace 包同一份），配上
 nixpkgs 的 Electron，写出 `app.getAppPath()`/`process.resourcesPath` 期望的
-资源目录树。**上游源码文件未作任何修改。**
+资源目录树。上游源码文件完全不动、也不重新编译；唯一被改写的文件是打包后的
+主进程 `resources/app/lib/main.js`，安装阶段给它打上四处最小的 Linux 补丁
+（见下节）。
 
 产物行为与官方桌面版一致：启动本地 dsh 服务、打开桌面窗口，并从
 `resources/runtime/` 读取同一套 skill、pnpm 与 primary-runtime 负载。
+
+## 桌面集成（Linux）
+
+上游把若干桌面行为限定在 `win32`，另有一处 Linux 缺口借鉴了下游修复。
+四者都是由 `desktop-shell-patch.mjs` 打进 `lib/main.js` 的小补丁——每个锚点
+都验证过在 bundle 中恰好出现一次，上游升级若挪动了这些代码，构建会直接失败，
+而不是发出一个半成品外壳：
+
+- **托盘图标。** 关闭窗口本来就只是隐藏（页面与 Host 继续运行），但上游只在
+  Windows 创建托盘——那正是把窗口叫回来的入口。现在 Linux 获得同一个
+  `DesktopTray`：单击重新打开窗口，右键菜单提供「打开/退出」，首次关闭时弹
+  一次性提示「正在运行的任务不会中断，可在系统托盘中重新打开窗口」（上游为
+  Windows 写的原话）再隐藏。图标走 StatusNotifierItem 注册，与 Linux 上所有
+  Electron 托盘一样，不涉及额外系统库。GNOME 下需要 AppIndicator 扩展才显示
+  图标（所有 SNI 应用皆然）。
+- **桌面通知。** Electron 在 Linux 上通过 `libnotify` 发通知，运行时按 soname
+  dlopen；找不到库时只打一行
+  `Unable to find libnotify; notifications disabled` 就把通知静默关掉。
+  因此启动器把 `libnotify` 放进 `LD_LIBRARY_PATH`，构建期还会以内置二进制
+  自身的解析路径探测同样的 dlopen——通知链路不会无声退化。通知遵循
+  FreeDesktop 桌面通知规范，需要桌面通知守护进程（主流桌面环境均自带）。
+- **隐藏菜单栏。** Linux 下应用菜单会以菜单栏形式出现在每个窗口。
+  `DSH_DESKTOP_HIDE_MENUBAR=1`（默认）把它隐藏但不移除菜单，快捷键
+  （编辑菜单、F12 开发者工具）照常可用；`DSH_DESKTOP_HIDE_MENUBAR=0` 恢复
+  显示。上游没有提供任何控制方式，故采用该环境变量。
+- **信号优雅退出。** `SIGINT`/`SIGTERM` 现在走外壳自身的清理流程退出，且
+  Host 以独立进程组启动，终端信号只作用于外壳——改编自
+  [Moraxyc/deepseek-harness.nix 的 `desktop-signal-shutdown.patch`](https://github.com/Moraxyc/deepseek-harness.nix/commit/c9999f47789aa77f21366571c8f05449cd671f49)，
+  待上游处理 Linux 终端信号后即可移除。
 
 ## 目录结构
 
@@ -62,13 +93,17 @@ resources/icon.png                          窗口/任务栏图标
 `lib/main.js`）只做类型检查，**不与任何值比对**。陈旧的值会被静默接受，因此
 构建阶段拒绝猜测。
 
-两道构建期守卫会让构建失败，而不是让用户的启动失败：
+四道构建期守卫会让构建失败，而不是让用户的启动失败：
 
 - `desktop-coverage.mjs` 校验打包后外壳里的每一个裸导入都能在
   `resources/app/node_modules` 中解析，并校验上游
   `apps/desktop-host/package.json` 中的每个依赖都已链接进内置运行时。
   上游新增而本包遗漏的依赖，如今会在构建期点名报错，而不是等到启动时报
   `ERR_MODULE_NOT_FOUND`。
+- `desktop-shell-patch.mjs` 只接受与锚点完全一致的替换，并对改写后的 bundle
+  做语法检查；上游升级若挪动了被打补丁的代码，构建会点名是哪一处补丁失败。
+- 通知探针以内置二进制自身的搜索路径 dlopen `libnotify`（即 Electron 通知
+  后端使用的解析方式），通知栈被静默禁用会让构建失败。
 - primary-runtime 清单中的 `node` 字段会与实际链接的二进制比对。
 
 正因如此，升级版本只需运行

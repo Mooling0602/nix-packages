@@ -11,9 +11,10 @@
 # Electron. (The two outputs' *runtime closures* are in fact independent; it is
 # the build cost, not closure size, that forces the split.)
 #
-# Only the desktop assembly is new here; desktop.nix documents the on-disk
-# layout and the five load-bearing details, each verified against the unmodified
-# upstream application.
+# The desktop assembly, four Linux shell patches and the notification probe are
+# new here; desktop.nix documents the on-disk layout, the five load-bearing
+# details (each verified against the unmodified upstream application) and the
+# patches (desktop-shell-patch.mjs).
 {
   lib
 , callPackage
@@ -268,9 +269,12 @@ callPackage ./desktop.nix {
   inherit bubblewrap nodeRuntimeVersion;
   # Build-time helpers, and the upstream sources they read. The two guards fail
   # the build when an upstream bump changes something these lists assume, which
-  # is what makes an unattended version bump safe to trust.
+  # is what makes an unattended version bump safe to trust. The shell-patch
+  # script likewise fails the build when the bundle no longer matches the
+  # anchors its Linux patches were written against.
   coverageScript = ./desktop-coverage.mjs;
   descriptorScript = ./desktop-runtime-json.mjs;
+  shellPatchScript = ./desktop-shell-patch.mjs;
   hostManifest = "${outPath}/apps/desktop-host/package.json";
   protocolSource = "${outPath}/apps/desktop/src/host-protocol.ts";
   python = pythonEnv;

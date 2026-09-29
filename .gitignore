@@ -8,3 +8,6 @@
 # nix build result symlink
 result
 result-*
+
+.tmp/
+.tmp-*/
