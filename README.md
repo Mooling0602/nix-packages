@@ -42,6 +42,7 @@ Mooling0602's [NUR](https://github.com/nix-community/NUR) repository. May includ
 | [`qoder`](pkgs/by-name/qo/qoder/README.md) | Qoder, an agent workbench for human and AI software teams, from the official `.deb` (unfree, x86_64-linux only) |
 | [`qoder-ide`](pkgs/by-name/qo/qoder-ide/README.md) | Qoder IDE, Agentic IDE for Real Software (unfree, x86_64-linux only) |
 | [`reasonix-desktop`](pkgs/by-name/re/reasonix-desktop/README.md) | Desktop app for the DeepSeek-Reasonix reasoning enhancer (x86_64-linux only) |
+| [`startlive`](pkgs/by-name/st/startlive/README.md) | StartLive, start Bilibili live streams without the official LiveHime client, built from the PyPI source distribution (GPL-3.0, Linux) |
 
 ## License
 

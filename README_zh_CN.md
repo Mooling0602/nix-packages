@@ -42,6 +42,7 @@ Mooling0602 的 [NUR](https://github.com/nix-community/NUR) 软件仓库，由 �
 | [`qoder`](pkgs/by-name/qo/qoder/README.md) | Qoder，面向人类与 AI 软件团队的智能体工作台，来自官方 `.deb`（unfree，仅 x86_64-linux） |
 | [`qoder-ide`](pkgs/by-name/qo/qoder-ide/README.md) | Qoder IDE，面向真实软件开发的 AI 原生 IDE（unfree，仅 x86_64-linux） |
 | [`reasonix-desktop`](pkgs/by-name/re/reasonix-desktop/README.md) | DeepSeek-Reasonix 推理增强器的桌面应用（仅 x86_64-linux） |
+| [`startlive`](pkgs/by-name/st/startlive/README.md) | StartLive，绕过 B 站官方「直播姬」开播的桌面程序，从 PyPI 源码包构建（GPL-3.0，Linux） |
 
 ## 许可证
 

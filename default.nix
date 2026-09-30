@@ -14,4 +14,5 @@
   openfic = pkgs.callPackage ./pkgs/by-name/op/openfic/package.nix { };
   openfic-git = pkgs.callPackage ./pkgs/by-name/op/openfic-git/package.nix { };
   niri-input-portal = pkgs.callPackage ./pkgs/by-name/ni/niri-input-portal/package.nix { };
+  startlive = pkgs.callPackage ./pkgs/by-name/st/startlive/package.nix { };
 }
