@@ -57,6 +57,23 @@ nixpkgs 的 Electron，写出 `app.getAppPath()`/`process.resourcesPath` 期望�
   [Moraxyc/deepseek-harness.nix 的 `desktop-signal-shutdown.patch`](https://github.com/Moraxyc/deepseek-harness.nix/commit/c9999f47789aa77f21366571c8f05449cd671f49)，
   待上游处理 Linux 终端信号后即可移除。
 
+### 桌面身份
+
+任务栏靠**名字**把窗口和它的图标对上，而这个名字有四种写法必须一致：
+Wayland 的 `app_id`、X11 的 `WM_CLASS`、`.desktop` 文件名以及该条目里的
+`StartupWMClass`。前两者不由本包决定——Electron 从应用清单推导
+（`packageJson.desktopName`，没有则把 `app.name` 转成短横线小写 slug），
+窗口照它自己的结果上报，与本包装了什么无关。此前窗口报的是
+`deepseek-ai-dsh-desktop`（源自私有包名 `@deepseek-ai/dsh-desktop`），而条目
+却装成 `deepseek-harness.desktop`，两者对不上，Wayland 任务栏于是退回通用图标。
+
+现在条目按 Electron 实际上报的 id 命名，`StartupWMClass` 也改用同一个值，而不是
+产品名。`desktop-identity.mjs` 会在构建期用 Electron 自身的算法从随包的应用清单
+重新推导该 id，并比对文件名、`StartupWMClass` 与 `Icon=`；上游若改了那个私有包名，
+构建会直接失败并同时列出两侧的值，而不是让每个窗口静默失配。
+
+图标也按同一身份安装，既包含窗口与托盘使用的位图，也包含上游提供的矢量原件。
+
 ## 目录结构
 
 ```
@@ -93,7 +110,7 @@ resources/icon.png                          窗口/任务栏图标
 `lib/main.js`）只做类型检查，**不与任何值比对**。陈旧的值会被静默接受，因此
 构建阶段拒绝猜测。
 
-四道构建期守卫会让构建失败，而不是让用户的启动失败：
+构建期会做五项检查，而不是留到用户的启动阶段才发现问题：
 
 - `desktop-coverage.mjs` 校验打包后外壳里的每一个裸导入都能在
   `resources/app/node_modules` 中解析，并校验上游
@@ -102,6 +119,8 @@ resources/icon.png                          窗口/任务栏图标
   `ERR_MODULE_NOT_FOUND`。
 - `desktop-shell-patch.mjs` 只接受与锚点完全一致的替换，并对改写后的 bundle
   做语法检查；上游升级若挪动了被打补丁的代码，构建会点名是哪一处补丁失败。
+- `desktop-identity.mjs` 从随包的应用清单重新推导桌面 id，条目文件名、
+  `StartupWMClass` 或图标与之不符就拒绝该产物，Wayland 窗口不会无声地失去图标。
 - 通知探针以内置二进制自身的搜索路径 dlopen `libnotify`（即 Electron 通知
   后端使用的解析方式），通知栈被静默禁用会让构建失败。
 - primary-runtime 清单中的 `node` 字段会与实际链接的二进制比对。

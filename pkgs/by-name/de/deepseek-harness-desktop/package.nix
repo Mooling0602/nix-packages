@@ -271,10 +271,13 @@ callPackage ./desktop.nix {
   # the build when an upstream bump changes something these lists assume, which
   # is what makes an unattended version bump safe to trust. The shell-patch
   # script likewise fails the build when the bundle no longer matches the
-  # anchors its Linux patches were written against.
+  # anchors its Linux patches were written against, and the identity script
+  # fails it when the desktop identity no longer matches the window Electron
+  # will report.
   coverageScript = ./desktop-coverage.mjs;
   descriptorScript = ./desktop-runtime-json.mjs;
   shellPatchScript = ./desktop-shell-patch.mjs;
+  identityScript = ./desktop-identity.mjs;
   hostManifest = "${outPath}/apps/desktop-host/package.json";
   protocolSource = "${outPath}/apps/desktop/src/host-protocol.ts";
   python = pythonEnv;

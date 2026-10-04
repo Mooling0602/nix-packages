@@ -69,6 +69,29 @@ the code fails the build instead of shipping a half-patched shell:
   [Moraxyc/deepseek-harness.nix `desktop-signal-shutdown.patch`](https://github.com/Moraxyc/deepseek-harness.nix/commit/c9999f47789aa77f21366571c8f05449cd671f49),
   to be dropped once upstream handles Linux terminal signals.
 
+### Desktop identity
+
+A window finds its icon in a task bar by name, and the name has four spellings
+that all have to agree: the Wayland `app_id`, the X11 `WM_CLASS`, the
+`.desktop` file name, and the entry's `StartupWMClass`. The first two are not
+this package's to choose — Electron derives them from the application manifest
+(`packageJson.desktopName`, else a slug of `app.name`), and the window reports
+what it likes regardless of what the package installs. Those two were
+`deepseek-ai-dsh-desktop` (from the private package name
+`@deepseek-ai/dsh-desktop`) while the entry was installed as
+`deepseek-harness.desktop`, so no shell could match the pair and a Wayland task
+bar fell back to its generic icon.
+
+The entry is therefore named after the id Electron actually reports, and
+`StartupWMClass` carries the same value instead of the product name.
+`desktop-identity.mjs` re-derives the id from the shipped manifest with
+Electron's own algorithm and checks the file name, `StartupWMClass` and `Icon=`
+against it at build time, so an upstream rename of that private package fails
+the build and names both sides rather than silently un-matching every window.
+
+The icon is installed under the same identity, in both the raster form the
+window and tray use and the vector original upstream ships.
+
 ## Layout
 
 ```
@@ -109,7 +132,7 @@ Both matter because the shipped reader (`readDesktopRuntime`, inlined into
 `lib/main.js`) type-checks them without comparing either to anything. A stale
 value would therefore be accepted silently, so the build refuses to guess.
 
-Four build-time guards fail the build rather than the user's launch:
+Five things are checked at build time rather than discovered at launch:
 
 - `desktop-coverage.mjs` checks that every bare import in the packaged shell
   resolves inside `resources/app/node_modules`, and that every dependency in
@@ -119,6 +142,9 @@ Four build-time guards fail the build rather than the user's launch:
 - `desktop-shell-patch.mjs` refuses to patch anything but an exact match of
   each anchor, and syntax-checks the rewritten bundle, so an upstream bump that
   moves the patched code names the patch instead of shipping half of it.
+- `desktop-identity.mjs` re-derives the desktop id from the shipped manifest
+  and refuses a tree whose entry name, `StartupWMClass` or icons disagree with
+  it, so a Wayland window cannot quietly stop matching its icon.
 - The notification probe dlopens `libnotify` through the shipped binary's own
   search path — the resolution the Electron notification backend uses — so a
   silently disabled notification stack fails the build.

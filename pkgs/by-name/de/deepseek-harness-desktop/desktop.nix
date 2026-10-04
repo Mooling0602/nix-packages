@@ -36,6 +36,13 @@
 # exactly once in the bundle, so an upstream bump that moves the code fails the
 # build instead of shipping a half-patched shell.
 #
+# The Linux desktop identity is not patched but reconciled (desktop-identity.mjs):
+# Electron derives the Wayland app id and X11 WM_CLASS from the application
+# manifest rather than from anything this package writes, so the .desktop file,
+# its StartupWMClass and its Icon= are made to agree with the value Electron
+# actually reports, and the build re-derives that value and checks all four. See
+# desktopId below.
+#
 # Desktop notifications run through libnotify, which the bundled Electron
 # dlopens by soname at first use rather than linking: a missing library only
 # logs "Unable to find libnotify; notifications disabled". The wrapper puts
@@ -186,6 +193,7 @@
 , shellPatchScript
 , coverageScript
 , descriptorScript
+, identityScript
 , hostManifest
 , protocolSource
 
@@ -202,6 +210,21 @@
 }:
 
 let
+  # The Linux desktop identity, in one place because four things have to agree
+  # on it (see desktop-identity.mjs): the Wayland app id and X11 WM_CLASS that
+  # Electron derives from the application manifest, the .desktop file name the
+  # shell looks the window up by, and StartupWMClass.
+  #
+  # The first two are not this package's to choose. apps/desktop/package.json
+  # declares "name": "@deepseek-ai/dsh-desktop" and no desktopName, so Electron
+  # runs its own fallback -- lowercase, hyphenate, strip everything that is not
+  # [a-z0-9] (lib/browser/desktop-name.ts) -- and the live window reports
+  # "deepseek-ai-dsh-desktop" on niri. Naming the .desktop file anything else
+  # leaves the window unmatched, which is what a Wayland task bar draws as its
+  # generic icon. Rather than restate the derivation here and hope, the install
+  # phase re-derives it from the shipped manifest and fails on a mismatch.
+  desktopId = "deepseek-ai-dsh-desktop";
+
   # nixpkgs's Electron ships its payload under libexec/electron.
   electronDir = "${electron.unwrapped}/libexec/electron";
 
@@ -304,13 +327,21 @@ stdenvNoCC.mkDerivation {
 
   desktopItems = [
     (makeDesktopItem {
-      name = "deepseek-harness";
+      # makeDesktopItem's `name` is the .desktop file name: it must equal the
+      # window's app id or a Wayland task bar cannot match the two and falls
+      # back to its generic icon (see desktopId above). `desktopName` is the
+      # human-readable Name= shown in launchers, which stays the product name.
+      name = desktopId;
       desktopName = "DeepSeek Harness";
       comment = "Open-source agent harness developed by DeepSeek AI";
       exec = "deepseek-harness %u";
-      icon = "deepseek-harness";
+      icon = desktopId;
       categories = [ "Development" ];
-      startupWMClass = "DeepSeek Harness";
+      # Electron sets WM_CLASS and the Wayland app id from the same value
+      # (native_window_views.cc), so this is the app id rather than the product
+      # name -- the previous "DeepSeek Harness" matched neither, leaving X11
+      # and XWayland windows unassociated as well.
+      startupWMClass = desktopId;
       mimeTypes = [ "x-scheme-handler/dsh" ];
     })
   ];
@@ -462,9 +493,14 @@ stdenvNoCC.mkDerivation {
       "$pr/dependencies/python/lib/python${pythonMajorMinor}/site-packages"
     cp ${builtins.toFile "runtime.json" runtimeManifest} "$pr/runtime.json"
 
-    # 5. Desktop-entry icon.
+    # 5. Desktop-entry icons, under the app id that the desktop entry, the
+    #    window and StartupWMClass all share (see desktopId). Both the raster the
+    #    window and tray use and the vector original upstream ships, so launchers
+    #    that scale get the SVG rather than a 512px upscale.
     install -Dm644 ${appRoot}/resources/icon.png \
-      "$out/share/icons/hicolor/512x512/apps/deepseek-harness.png"
+      "$out/share/icons/hicolor/512x512/apps/${desktopId}.png"
+    install -Dm644 ${appRoot}/resources/icon.svg \
+      "$out/share/icons/hicolor/scalable/apps/${desktopId}.svg"
 
     # 6. The launcher. See note 4.
     makeWrapper "$out/deepseek-harness" "$out/bin/deepseek-harness" \
@@ -506,6 +542,17 @@ stdenvNoCC.mkDerivation {
     '
 
     runHook postInstall
+
+    # 7. The desktop identity, checked against the tree that was just assembled.
+    #    It runs here rather than earlier because the .desktop file itself only
+    #    appears in postInstall (copyDesktopItems). The app id the window will
+    #    report is not written down anywhere in this file to compare against --
+    #    it is *derived* from the shipped application manifest by Electron's own
+    #    fallback -- so the script re-derives it with the same algorithm and
+    #    fails on any disagreement with the file name, StartupWMClass or Icon=
+    #    below. An upstream rename of the private package therefore fails this
+    #    build instead of silently un-matching every window on a Wayland session.
+    ${nodejs}/bin/node ${identityScript} "$app" "$out" ${desktopId} ${desktopId}
   '';
 
   meta = {
