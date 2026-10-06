@@ -77,6 +77,26 @@ let
     + "    }\n"
     + "    return api.requireBuiltin(moduleId);";
 
+  # `--expose-internals` only reaches a process Node starts with it. The
+  # experimental Inspector starts its own Worker with an explicit empty
+  # `execArgv` (packages/experimental/inspector/lib/index.js, spawnWorker), so
+  # the Worker loses the flag the launcher passed to the parent — and with it
+  # the plain-`require` path the addon patch above installs. The Worker entry
+  # (`lib/worker.js`) imports the profile-resolution bootstrap first, whose
+  # worker-bootstrap region calls internalModules() without a try/catch, so the
+  # first resolved module goes back through the native addon. That addon
+  # pattern-matches an exact per-build runtime fingerprint and accepts only
+  # Electron 43.0.0, 44.0.0 and 45.0.0-alpha.6, while nixpkgs ships 44.3.0
+  # (and 44.5.1 in the current desktop build), so activating the Inspector in
+  # the desktop application fails with
+  # `node-addon-require-builtin unsupported: Unsupported/no-context
+  # (unsupported Electron runtime fingerprint ...)`. Node applies Worker
+  # execArgv per Worker, so pass the flag explicitly here. Scoped to the
+  # Inspector's own Worker: the other `execArgv: []` sites run third-party or
+  # user code and must stay without internals.
+  inspectorSpawnWorkerExecArgv = "execArgv: []";
+  inspectorSpawnWorkerExecArgvPatched = "execArgv: [\"--expose-internals\"]";
+
   # The dsh CLI (apps/cli) resolves its ~90 workspace dependencies through the
   # relative symlinks pnpm created in node_modules, and its `dsh.configTrees`
   # manifest reaches into ../../packages/preset/... — so the whole repository
@@ -144,6 +164,15 @@ stdenv.mkDerivation (finalAttrs: {
       substituteInPlace "$addonEntry" \
         --replace-fail "${addonRequireBuiltin}" "${addonRequireBuiltinPatched}"
     done < <(find "$out/lib/${pname}" -path '*node-addon-require-builtin/lib/index.js' -type f)
+
+    # Keep the Inspector's Worker on the same accessor (see
+    # inspectorSpawnWorkerExecArgv). --replace-fail turns an upstream rewrite of
+    # spawnWorker into a build failure instead of a silently broken Inspector.
+    # Single quotes: the replacement is a JSON array, and the shell would eat its
+    # double quotes if they were the quoting characters.
+    substituteInPlace \
+      "$out/lib/${pname}/packages/experimental/inspector/lib/index.js" \
+      --replace-fail '${inspectorSpawnWorkerExecArgv}' '${inspectorSpawnWorkerExecArgvPatched}'
 
     # /bin/bash does not exist on NixOS (issue #8086)
     substituteInPlace \

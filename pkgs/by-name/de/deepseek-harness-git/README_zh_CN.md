@@ -40,6 +40,21 @@ getter is not a recognized this->field accessor)`，启动以
 或无需 addon 即可暴露该加载器后，即可从 `package.nix` 移除该
 `substituteInPlace`。
 
+该补丁只覆盖由 Node 以该参数启动的进程，这正是 `bin/dsh` 把它放在命令行的
+原因。Worker 线程是另一个环境：它的 `execArgv` 取决于创建方的选择，而实验性
+Inspector 的 Worker（`packages/experimental/inspector/lib/index.js` 的
+`spawnWorker`）显式传入了空数组。该 Worker 的入口首先导入
+profile-resolution 引导模块，而引导模块访问内部加载器时没有 `try`/`catch`，
+于是又落回原生 addon；在 Electron 上 addon 还有第二个会失败的理由：它按
+*精确*运行时指纹放行（只认 Electron 43.0.0、44.0.0、45.0.0-alpha.6），而
+nixpkgs 提供的是 44.3.0 或 44.5.1。因此在桌面版里一打开开发者模式，就会报
+`@deepseek-ai/dsh-experimental-inspector` 激活失败：
+`node-addon-require-builtin unsupported: Unsupported/no-context`。构建会把这一处
+创建点改写为 `execArgv: ["--expose-internals"]`，桌面包中的
+`desktop-inspector-worker.mjs` 则从随包目录里读回该值并真拉起一个 Worker，
+以保证它一直有效。仓库里其余 `execArgv: []` 的位置运行第三方或用户代码，
+故意不做改动。
+
 ## 更新
 
 ```bash

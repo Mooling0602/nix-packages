@@ -194,6 +194,7 @@
 , coverageScript
 , descriptorScript
 , identityScript
+, inspectorWorkerScript
 , hostManifest
 , protocolSource
 
@@ -540,6 +541,26 @@ stdenvNoCC.mkDerivation {
       console.error("desktop: the bundled Electron cannot dlopen() libnotify; desktop notifications would be disabled");
       process.exit(1);
     '
+
+    # 6b. The experimental Inspector works in its own Worker, and that Worker is
+    #     the one place where this package's `--expose-internals` has to be
+    #     re-supplied: it is spawned with an explicit execArgv (see
+    #     deepseek-harness-git's installPhase patch) and its entry imports the
+    #     profile-resolution bootstrap, which reaches Node's internal module
+    #     loader without a try/catch. Without the flag that call lands on the
+    #     prebuilt `node-addon-require-builtin` binary, whose fingerprint
+    #     allowlist holds only Electron 43.0.0/44.0.0/45.0.0-alpha.6 -- never a
+    #     nixpkgs patch release -- so opening developer mode fails with
+    #     "node-addon-require-builtin unsupported: Unsupported/no-context" and
+    #     the Inspector never activates. Nothing else in the build depends on
+    #     this, so the script reads the spawn site back out of the shipped tree
+    #     and spawns one real Worker with that execArgv under this build's
+    #     Electron (RUN_AS_NODE, as the desktop Host runs) instead of trusting
+    #     either the patch or per-Worker flag handling to keep working.
+    dsh_tree="$(dirname "$(dirname "$(readlink -f "$app/dsh/node_modules/@deepseek-ai/dsh-desktop-host")")")"
+    ELECTRON_RUN_AS_NODE=1 "$out/bin/deepseek-harness" ${inspectorWorkerScript} \
+      "$dsh_tree/packages/experimental/inspector/lib/index.js" \
+      "$dsh_tree/packages/boot/app-boot/lib/worker/profile-resolution-bootstrap.js"
 
     runHook postInstall
 

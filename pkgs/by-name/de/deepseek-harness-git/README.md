@@ -45,6 +45,24 @@ loader uses (`vendor/loader/src/internal.ts`). Drop that `substituteInPlace`
 from `package.nix` once upstream either tolerates the GCC codegen or exposes
 the loader without the addon.
 
+That patch only covers processes Node starts with the flag, which is why `bin/dsh`
+passes it on the command line. A Worker thread is a separate environment: its
+`execArgv` is whatever the spawning code supplied, and the experimental
+Inspector's Worker (`packages/experimental/inspector/lib/index.js`, `spawnWorker`)
+is spawned with an explicit empty one. Its entry imports the profile-resolution
+bootstrap first, and that bootstrap reaches the internal loader without a
+`try`/`catch`, so the Worker goes back through the addon — where Electron fails
+for a second, independent reason: the addon allowlists *exact* runtime
+fingerprints (Electron 43.0.0, 44.0.0, 45.0.0-alpha.6) and nixpkgs ships neither
+44.3.0 nor 44.5.1. Opening developer mode in the desktop application therefore
+reports `@deepseek-ai/dsh-experimental-inspector` failing to activate with
+`node-addon-require-builtin unsupported: Unsupported/no-context`. The build
+rewrites that one spawn site to `execArgv: ["--expose-internals"]`, and the
+desktop package's `desktop-inspector-worker.mjs` spawns a real Worker with the
+value read back out of the shipped tree to keep it that way. The tree's other
+`execArgv: []` sites run third-party or user code and are deliberately left
+alone.
+
 ## Update
 
 ```bash

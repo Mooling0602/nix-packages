@@ -273,11 +273,15 @@ callPackage ./desktop.nix {
   # script likewise fails the build when the bundle no longer matches the
   # anchors its Linux patches were written against, and the identity script
   # fails it when the desktop identity no longer matches the window Electron
-  # will report.
+  # will report. The Inspector guard reads the Worker spawn site back out of the
+  # shipped runtime and probes it under this build's Electron (see
+  # deepseek-harness-git's installPhase patch): failing developer mode is not
+  # something a version bump would ever surface on its own.
   coverageScript = ./desktop-coverage.mjs;
   descriptorScript = ./desktop-runtime-json.mjs;
   shellPatchScript = ./desktop-shell-patch.mjs;
   identityScript = ./desktop-identity.mjs;
+  inspectorWorkerScript = ./desktop-inspector-worker.mjs;
   hostManifest = "${outPath}/apps/desktop-host/package.json";
   protocolSource = "${outPath}/apps/desktop/src/host-protocol.ts";
   python = pythonEnv;

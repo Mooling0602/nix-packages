@@ -110,7 +110,7 @@ resources/icon.png                          窗口/任务栏图标
 `lib/main.js`）只做类型检查，**不与任何值比对**。陈旧的值会被静默接受，因此
 构建阶段拒绝猜测。
 
-构建期会做五项检查，而不是留到用户的启动阶段才发现问题：
+构建期会做六项检查，而不是留到用户的启动阶段才发现问题：
 
 - `desktop-coverage.mjs` 校验打包后外壳里的每一个裸导入都能在
   `resources/app/node_modules` 中解析，并校验上游
@@ -121,6 +121,13 @@ resources/icon.png                          窗口/任务栏图标
   做语法检查；上游升级若挪动了被打补丁的代码，构建会点名是哪一处补丁失败。
 - `desktop-identity.mjs` 从随包的应用清单重新推导桌面 id，条目文件名、
   `StartupWMClass` 或图标与之不符就拒绝该产物，Wayland 窗口不会无声地失去图标。
+- `desktop-inspector-worker.mjs` 从随包的运行时中读出实验性 Inspector 的 Worker
+  创建点，要求它带上 `--expose-internals`，然后用这个 `execArgv` 在当前构建的
+  Electron 里真拉起一个 Worker。该 Worker 的首个导入会经预编译的
+  `node-addon-require-builtin` 抵达 Node 的内部模块加载器，而这个二进制的运行时
+  指纹白名单只认 Electron 43.0.0、44.0.0 与 45.0.0-alpha.6，永远不含 nixpkgs 的
+  修订版本号——所以这里一旦回归，表现就是开发者模式下插件激活失败，构建期之外
+  没有任何地方会发现。
 - 通知探针以内置二进制自身的搜索路径 dlopen `libnotify`（即 Electron 通知
   后端使用的解析方式），通知栈被静默禁用会让构建失败。
 - primary-runtime 清单中的 `node` 字段会与实际链接的二进制比对。
