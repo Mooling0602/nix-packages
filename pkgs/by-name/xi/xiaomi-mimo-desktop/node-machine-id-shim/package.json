@@ -1,0 +1,7 @@
+{
+  "name": "node-machine-id",
+  "version": "1.1.12-shim",
+  "description": "Shim restoring node-machine-id for the Xiaomi MiMo Desktop Linux build",
+  "main": "index.js",
+  "license": "MIT"
+}

@@ -43,6 +43,7 @@ Mooling0602 的 [NUR](https://github.com/nix-community/NUR) 软件仓库，由 �
 | [`qoder-ide`](pkgs/by-name/qo/qoder-ide/README.md) | Qoder IDE，面向真实软件开发的 AI 原生 IDE（unfree，仅 x86_64-linux） |
 | [`reasonix-desktop`](pkgs/by-name/re/reasonix-desktop/README.md) | DeepSeek-Reasonix 推理增强器的桌面应用（仅 x86_64-linux） |
 | [`startlive`](pkgs/by-name/st/startlive/README.md) | StartLive，绕过 B 站官方「直播姬」开播的桌面程序，从 PyPI 源码包构建（GPL-3.0，Linux） |
+| [`xiaomi-mimo-desktop`](pkgs/by-name/xi/xiaomi-mimo-desktop/README.md) | 小米 MiMo 桌面客户端（Xiaomi MiMo Desktop），小米官方 AI 桌面智能体应用，来自官方 Linux `.deb`，以 FHS 沙箱运行（unfree，仅 x86_64-linux） |
 
 ## 许可证
 

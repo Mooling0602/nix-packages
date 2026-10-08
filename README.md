@@ -43,6 +43,7 @@ Mooling0602's [NUR](https://github.com/nix-community/NUR) repository. May includ
 | [`qoder-ide`](pkgs/by-name/qo/qoder-ide/README.md) | Qoder IDE, Agentic IDE for Real Software (unfree, x86_64-linux only) |
 | [`reasonix-desktop`](pkgs/by-name/re/reasonix-desktop/README.md) | Desktop app for the DeepSeek-Reasonix reasoning enhancer (x86_64-linux only) |
 | [`startlive`](pkgs/by-name/st/startlive/README.md) | StartLive, start Bilibili live streams without the official LiveHime client, built from the PyPI source distribution (GPL-3.0, Linux) |
+| [`xiaomi-mimo-desktop`](pkgs/by-name/xi/xiaomi-mimo-desktop/README.md) | Xiaomi MiMo Desktop (小米 MiMo 桌面客户端), Xiaomi's official AI desktop agent, from the official Linux `.deb`, run in an FHS sandbox (unfree, x86_64-linux only) |
 
 ## License
 
