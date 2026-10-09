@@ -18,7 +18,7 @@ tsdown，Web 前端走 vite）。由于 `dsh` 依赖 pnpm 的相对符号链接�
 `$out/lib/deepseek-harness-git`，`bin/dsh` 以 `node --expose-internals` 包装
 `apps/cli/lib/bin.js`。
 
-产物较大（约 1.4 GB），因为 `node_modules` 中保留了开发工具链；裁剪为仅
+产物较大（约 2.3 GB），因为 `node_modules` 中保留了开发工具链；裁剪为仅
 生产依赖会破坏 pnpm 的符号链接布局保证，这里刻意不做。
 
 ## NixOS 说明：访问 Node 内部模块加载器
@@ -46,8 +46,8 @@ Inspector 的 Worker（`packages/experimental/inspector/lib/index.js` 的
 `spawnWorker`）显式传入了空数组。该 Worker 的入口首先导入
 profile-resolution 引导模块，而引导模块访问内部加载器时没有 `try`/`catch`，
 于是又落回原生 addon；在 Electron 上 addon 还有第二个会失败的理由：它按
-*精确*运行时指纹放行（只认 Electron 43.0.0、44.0.0、45.0.0-alpha.6），而
-nixpkgs 提供的是 44.3.0 或 44.5.1。因此在桌面版里一打开开发者模式，就会报
+*精确*的逐构建 Electron 运行时指纹放行，而 nixpkgs 的 Electron 永远不在其列。
+因此在桌面版里一打开开发者模式，就会报
 `@deepseek-ai/dsh-experimental-inspector` 激活失败：
 `node-addon-require-builtin unsupported: Unsupported/no-context`。构建会把这一处
 创建点改写为 `execArgv: ["--expose-internals"]`，桌面包中的

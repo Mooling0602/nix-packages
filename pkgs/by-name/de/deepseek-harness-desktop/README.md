@@ -149,10 +149,10 @@ Six things are checked at build time rather than discovered at launch:
   site out of the shipped runtime, requires it to carry `--expose-internals`,
   and then spawns one real Worker with exactly that `execArgv` under this
   build's Electron. The Worker's first import reaches Node's internal module
-  loader through the prebuilt `node-addon-require-builtin` addon, whose runtime
-  fingerprint allowlist holds only Electron 43.0.0, 44.0.0 and 45.0.0-alpha.6 —
-  never a nixpkgs patch release — so a regression here is developer mode opening
-  onto a plugin that fails to activate, with nothing else in the build noticing.
+  loader through the prebuilt `node-addon-require-builtin` addon, whose Electron
+  runtime fingerprint nixpkgs' Electron never carries, so a regression here is
+  developer mode opening onto a plugin that fails to activate, with nothing else
+  in the build noticing.
 - The notification probe dlopens `libnotify` through the shipped binary's own
   search path — the resolution the Electron notification backend uses — so a
   silently disabled notification stack fails the build.

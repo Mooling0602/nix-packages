@@ -85,15 +85,13 @@ let
   # (`lib/worker.js`) imports the profile-resolution bootstrap first, whose
   # worker-bootstrap region calls internalModules() without a try/catch, so the
   # first resolved module goes back through the native addon. That addon
-  # pattern-matches an exact per-build runtime fingerprint and accepts only
-  # Electron 43.0.0, 44.0.0 and 45.0.0-alpha.6, while nixpkgs ships 44.3.0
-  # (and 44.5.1 in the current desktop build), so activating the Inspector in
-  # the desktop application fails with
-  # `node-addon-require-builtin unsupported: Unsupported/no-context
-  # (unsupported Electron runtime fingerprint ...)`. Node applies Worker
-  # execArgv per Worker, so pass the flag explicitly here. Scoped to the
-  # Inspector's own Worker: the other `execArgv: []` sites run third-party or
-  # user code and must stay without internals.
+  # matches an exact per-build Electron runtime fingerprint, and nixpkgs'
+  # Electron is never one of them, so activating the Inspector in the desktop
+  # application fails with `node-addon-require-builtin unsupported:
+  # Unsupported/no-context (unsupported Electron runtime fingerprint ...)`.
+  # Node applies Worker execArgv per Worker, so pass the flag explicitly here.
+  # Scoped to the Inspector's own Worker: the other `execArgv: []` sites run
+  # third-party or user code and must stay without internals.
   inspectorSpawnWorkerExecArgv = "execArgv: []";
   inspectorSpawnWorkerExecArgvPatched = "execArgv: [\"--expose-internals\"]";
 

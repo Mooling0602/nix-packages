@@ -25,7 +25,7 @@
  * Icon= are checked against the value that comes out. A drift in either
  * direction fails the build and names both sides.
  *
- * Algorithm and wiring, read from Electron v44.3.0:
+ * Algorithm and wiring, read from Electron's own Linux sources:
  *   lib/browser/init.ts:136        app.setDesktopName(packageJson.desktopName || defaultDesktopName(app.name))
  *   lib/browser/init.ts:130-134    app.name = packageJson.productName ?? packageJson.name, trimmed
  *   lib/browser/desktop-name.ts    the slug, and the "<exe>.desktop" fallback
@@ -34,9 +34,9 @@
  *   shell/browser/native_window_views.cc:321   WM_CLASS and the Wayland app id
  *                                              are set from that one value
  *
- * Verified against a running window on niri 25.x: the shipped 0.2.1-alpha.1
- * tree reports app_id "deepseek-ai-dsh-desktop", which is what deriveAppId()
- * returns for its manifest.
+ * Verified against a running window on niri 25.x: the shipped tree reports
+ * app_id "deepseek-ai-dsh-desktop", which is what deriveAppId() returns for its
+ * manifest.
  */
 import { existsSync, readFileSync } from "node:fs"
 import { basename, join } from "node:path"

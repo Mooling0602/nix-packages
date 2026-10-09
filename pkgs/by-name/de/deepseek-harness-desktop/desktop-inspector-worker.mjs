@@ -13,9 +13,8 @@
  *      @deepseek-ai/dsh-app-boot/worker/profile-resolution-bootstrap first, and
  *      that module's worker-bootstrap region calls internalModules() with no
  *      try/catch. Without the flag the call reaches the prebuilt
- *      `node-addon-require-builtin` binary, which pattern-matches an exact
- *      per-build runtime fingerprint and accepts only Electron 43.0.0, 44.0.0
- *      and 45.0.0-alpha.6 -- never a nixpkgs patch release (44.3.0, 44.5.1).
+ *      `node-addon-require-builtin` binary, which matches an exact per-build
+ *      Electron runtime fingerprint that nixpkgs' Electron never carries.
  *      Activation then fails with "node-addon-require-builtin unsupported:
  *      Unsupported/no-context (unsupported Electron runtime fingerprint ...)".
  *      deepseek-harness-git patches the spawn site to pass the flag; this guard
@@ -76,8 +75,8 @@ if (!Array.isArray(execArgv) || !execArgv.includes("--expose-internals")) {
   fail([
     `the Inspector spawns its Worker with execArgv ${literals[0]}`,
     "which drops the parent's --expose-internals. The Worker would resolve Node's",
-    "internal module loader through the prebuilt addon, and every Electron that is",
-    "not 43.0.0/44.0.0/45.0.0-alpha.6 fails activation in developer mode.",
+    "internal module loader through the prebuilt addon, whose Electron runtime",
+    "fingerprint this build does not carry, failing activation in developer mode.",
   ])
 }
 

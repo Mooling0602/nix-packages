@@ -20,7 +20,7 @@ reach into `../../packages/...`), the whole repository layout is installed
 under `$out/lib/deepseek-harness-git` and `bin/dsh` wraps
 `node --expose-internals` against `apps/cli/lib/bin.js`.
 
-The output is large (~1.4 GB) because the dev toolchain stays in `node_modules`;
+The output is large (~2.3 GB) because the dev toolchain stays in `node_modules`;
 a pruned production-only install would break pnpm's symlink layout guarantees
 and is intentionally not attempted.
 
@@ -52,10 +52,10 @@ Inspector's Worker (`packages/experimental/inspector/lib/index.js`, `spawnWorker
 is spawned with an explicit empty one. Its entry imports the profile-resolution
 bootstrap first, and that bootstrap reaches the internal loader without a
 `try`/`catch`, so the Worker goes back through the addon — where Electron fails
-for a second, independent reason: the addon allowlists *exact* runtime
-fingerprints (Electron 43.0.0, 44.0.0, 45.0.0-alpha.6) and nixpkgs ships neither
-44.3.0 nor 44.5.1. Opening developer mode in the desktop application therefore
-reports `@deepseek-ai/dsh-experimental-inspector` failing to activate with
+for a second, independent reason: the addon matches an *exact* per-build
+Electron runtime fingerprint, and nixpkgs' Electron never carries one. Opening
+developer mode in the desktop application therefore reports
+`@deepseek-ai/dsh-experimental-inspector` failing to activate with
 `node-addon-require-builtin unsupported: Unsupported/no-context`. The build
 rewrites that one spawn site to `execArgv: ["--expose-internals"]`, and the
 desktop package's `desktop-inspector-worker.mjs` spawns a real Worker with the
