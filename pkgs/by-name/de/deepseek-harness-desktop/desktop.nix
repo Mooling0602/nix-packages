@@ -8,8 +8,9 @@
 #   resources/app/dsh/desktop-runtime.json      runtime descriptor
 #   resources/runtime/office-skills/            boot-required skill assets
 #   resources/runtime/bin/node                  standalone Node for skill-office
-#   resources/runtime/pnpm/                     pnpm CLI
 #   resources/runtime/primary-runtime/          interpreters + Python libraries
+#   resources/runtime/primary-runtime/dependencies/pnpm/
+#                                               pnpm CLI
 #   resources/icon.png                          window/taskbar icon
 #
 # Beyond assembly, the install phase rewrites the bundled main process with
@@ -49,7 +50,7 @@
 # libnotify on LD_LIBRARY_PATH and step 6a probes exactly that resolution path
 # from inside the shipped binary, so notifications cannot degrade silently.
 #
-# Five details are load-bearing; each was verified experimentally against the
+# Six details are load-bearing; each was verified experimentally against the
 # unmodified upstream application.
 #
 #  1. The Electron binary must NOT be named 'electron'. Electron treats an
@@ -162,6 +163,17 @@
 #     WebAssembly build is not installed by the offline pnpm install, sharp only
 #     falls back to it when the native addon fails to load, and it gives up
 #     native text rendering and tiled output.
+#
+#  6. pnpm lives inside the primary-runtime payload, at
+#     resources/runtime/primary-runtime/dependencies/pnpm, not beside it. Three
+#     readers resolve it by absolute path and none searches: runtimeResources()
+#     (apps/desktop/src/main.ts) builds the plugin manager's package manager from
+#     it, runDesktopCli() (apps/desktop-host/src/cli.ts) resolves it under its
+#     supportDir, and workspaceDependencyPaths() reads
+#     `<payload>/dependencies/pnpm/bin/pnpm.mjs` once that payload is installed
+#     under the Harness home. Pnpm is reached only when a plugin is installed,
+#     updated or removed, so a wrong location breaks neither build nor launch,
+#     and desktop-runtime-pnpm.mjs checks it at build time.
 {
   lib
 , stdenvNoCC
@@ -195,6 +207,7 @@
 , descriptorScript
 , identityScript
 , inspectorWorkerScript
+, pnpmEntryScript
 , hostManifest
 , protocolSource
 
@@ -478,17 +491,19 @@ stdenvNoCC.mkDerivation {
     # skill-office refuses to load in a packaged app without a standalone Node.
     cp ${appRoot}/scripts/node-bin/node "$resources/runtime/bin/node"
     chmod +x "$resources/runtime/bin/node"
-    cp -a ${pnpmRoot}/. "$resources/runtime/pnpm/"
     cp -a ${skillOfficeAssets} "$resources/runtime/office-skills"
 
     # primary-runtime: the interpreters and libraries behind the
     # load_workspace_dependencies tool. validatePayloadEntries() requires the
-    # python file, the node file and the site-packages directory to exist.
+    # python file, the node file, the pnpm file and the site-packages directory
+    # to exist.
     pr="$resources/runtime/primary-runtime"
     mkdir -p "$pr/dependencies/node/bin" "$pr/dependencies/node/node_modules"
+    mkdir -p "$pr/dependencies/pnpm"
     mkdir -p "$pr/dependencies/python/bin"
     mkdir -p "$pr/dependencies/python/lib/python${pythonMajorMinor}"
     ln -s ${nodejs}/bin/node "$pr/dependencies/node/bin/node"
+    cp -a ${pnpmRoot}/. "$pr/dependencies/pnpm/"
     ln -s ${python}/bin/python3 "$pr/dependencies/python/bin/python3"
     cp -a ${pythonSitePackages} \
       "$pr/dependencies/python/lib/python${pythonMajorMinor}/site-packages"
@@ -560,6 +575,10 @@ stdenvNoCC.mkDerivation {
     ELECTRON_RUN_AS_NODE=1 "$out/bin/deepseek-harness" ${inspectorWorkerScript} \
       "$dsh_tree/packages/experimental/inspector/lib/index.js" \
       "$dsh_tree/packages/boot/app-boot/lib/worker/profile-resolution-bootstrap.js"
+
+    # 6c. The pnpm entry point the plugin manager is handed (see note 6). It runs
+    #     after step 6 because it exercises the launcher that step creates.
+    ${nodejs}/bin/node ${pnpmEntryScript} "$app" "$resources" "$out/bin/deepseek-harness"
 
     runHook postInstall
 

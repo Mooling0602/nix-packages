@@ -282,6 +282,7 @@ callPackage ./desktop.nix {
   shellPatchScript = ./desktop-shell-patch.mjs;
   identityScript = ./desktop-identity.mjs;
   inspectorWorkerScript = ./desktop-inspector-worker.mjs;
+  pnpmEntryScript = ./desktop-runtime-pnpm.mjs;
   hostManifest = "${outPath}/apps/desktop-host/package.json";
   protocolSource = "${outPath}/apps/desktop/src/host-protocol.ts";
   python = pythonEnv;

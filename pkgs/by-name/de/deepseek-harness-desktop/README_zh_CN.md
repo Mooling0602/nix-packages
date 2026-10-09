@@ -83,18 +83,20 @@ resources/app/dsh/                          内置 dsh 运行时
 resources/app/dsh/desktop-runtime.json      运行时描述符
 resources/runtime/office-skills/            启动必需的 skill 资源
 resources/runtime/bin/node                  skill-office 用的独立 Node
-resources/runtime/pnpm/                     pnpm CLI
 resources/runtime/primary-runtime/          解释器与 Python 库
+resources/runtime/primary-runtime/dependencies/pnpm/
+                                            pnpm CLI
 resources/icon.png                          窗口/任务栏图标
 ```
 
-`desktop.nix` 记录了该结构的五个关键点，每一点都针对未修改的上游应用做过实测。
+`desktop.nix` 记录了该结构的六个关键点，每一点都针对未修改的上游应用做过实测。
 简要来说：Electron 可执行文件不能命名为 `electron`（该名称会让 Electron 报告
 `app.isPackaged === false`）；运行时必须位于 `resources/app/dsh` 而非
 `resources/dsh`；描述符会被应用校验；启动时需要 `CHROME_DEVEL_SANDBOX`，且
 `LD_LIBRARY_PATH` 必须带上 libstdc++；sharp 的原生插件需要动态链接的 libvips，
 本包按插件指定的名字替换了一份——预编译的那份静态内嵌了自己的 glib，会让 Host
-发生段错误。
+发生段错误；pnpm 必须位于 primary-runtime 负载**内部**，因为三个读取方都按绝对
+路径解析它，且都不做查找。
 
 ## 版本靠推导，而非复述
 
@@ -110,7 +112,7 @@ resources/icon.png                          窗口/任务栏图标
 `lib/main.js`）只做类型检查，**不与任何值比对**。陈旧的值会被静默接受，因此
 构建阶段拒绝猜测。
 
-构建期会做六项检查，而不是留到用户的启动阶段才发现问题：
+构建期会做七项检查，而不是留到用户的启动阶段才发现问题：
 
 - `desktop-coverage.mjs` 校验打包后外壳里的每一个裸导入都能在
   `resources/app/node_modules` 中解析，并校验上游
@@ -127,6 +129,10 @@ resources/icon.png                          窗口/任务栏图标
   `node-addon-require-builtin` 抵达 Node 的内部模块加载器，而这个二进制的
   Electron 运行时指纹是 nixpkgs 的 Electron 永不具备的——所以这里一旦回归，
   表现就是开发者模式下插件激活失败，构建期之外没有任何地方会发现。
+- `desktop-runtime-pnpm.mjs` 从两个随包 bundle 中读出 pnpm 入口路径，把 Host 的
+  supportDir 钉在外壳自己的 Node 启动器目录上，并关联到 primary-runtime 负载根，
+  再用打包好的 launcher 真正执行该入口。pnpm 只在安装、更新或卸载插件时才被触达，
+  因此这条路径一旦被挪动，表现就是点名插件的 `MODULE_NOT_FOUND`。
 - 通知探针以内置二进制自身的搜索路径 dlopen `libnotify`（即 Electron 通知
   后端使用的解析方式），通知栈被静默禁用会让构建失败。
 - primary-runtime 清单中的 `node` 字段会与实际链接的二进制比对。

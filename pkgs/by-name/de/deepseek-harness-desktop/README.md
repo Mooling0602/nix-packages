@@ -101,20 +101,23 @@ resources/app/dsh/                          the bundled dsh runtime
 resources/app/dsh/desktop-runtime.json      runtime descriptor
 resources/runtime/office-skills/            boot-required skill assets
 resources/runtime/bin/node                  standalone Node for skill-office
-resources/runtime/pnpm/                     pnpm CLI
 resources/runtime/primary-runtime/          interpreters + Python libraries
+resources/runtime/primary-runtime/dependencies/pnpm/
+                                            pnpm CLI
 resources/icon.png                          window/taskbar icon
 ```
 
-`desktop.nix` documents the five load-bearing details of this layout, each
+`desktop.nix` documents the six load-bearing details of this layout, each
 verified experimentally against the unmodified upstream application. In short:
 the Electron binary must not be named `electron` (that name makes Electron
 report `app.isPackaged === false`); the runtime belongs at
 `resources/app/dsh`, not `resources/dsh`; the descriptor is checked by the
 application; `CHROME_DEVEL_SANDBOX` plus a `LD_LIBRARY_PATH` carrying
-libstdc++ are required at launch; and sharp's native addon needs a dynamically
+libstdc++ are required at launch; sharp's native addon needs a dynamically
 linked libvips, which the package substitutes under the name the addon asks for
-because the prebuilt one statically embeds its own glib and segfaults the Host.
+because the prebuilt one statically embeds its own glib and segfaults the Host;
+and pnpm belongs inside the primary-runtime payload, because three readers
+resolve it by absolute path and none searches.
 
 ## Versions are derived, not restated
 
@@ -132,7 +135,7 @@ Both matter because the shipped reader (`readDesktopRuntime`, inlined into
 `lib/main.js`) type-checks them without comparing either to anything. A stale
 value would therefore be accepted silently, so the build refuses to guess.
 
-Six things are checked at build time rather than discovered at launch:
+Seven things are checked at build time rather than discovered at launch:
 
 - `desktop-coverage.mjs` checks that every bare import in the packaged shell
   resolves inside `resources/app/node_modules`, and that every dependency in
@@ -153,6 +156,12 @@ Six things are checked at build time rather than discovered at launch:
   runtime fingerprint nixpkgs' Electron never carries, so a regression here is
   developer mode opening onto a plugin that fails to activate, with nothing else
   in the build noticing.
+- `desktop-runtime-pnpm.mjs` reads the pnpm entry point back out of the two
+  shipped bundles that resolve it, pins the Host's support directory to the
+  shell's Node launcher directory, ties it to the primary-runtime payload root,
+  and runs the entry through the packaged launcher. pnpm is reached only when a
+  plugin is installed, updated or removed, so a move of this path surfaces as a
+  `MODULE_NOT_FOUND` naming the plugin.
 - The notification probe dlopens `libnotify` through the shipped binary's own
   search path — the resolution the Electron notification backend uses — so a
   silently disabled notification stack fails the build.
