@@ -1,40 +1,100 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# --- Optional GitHub API authentication to avoid rate limiting --------------
-# Export GITHUB_PAT (a GitHub personal access token) to authenticate GitHub
-# REST / raw requests. GITHUB_TOKEN is honoured as a fallback.
-gh_auth=()
-if [ -n "${GITHUB_PAT:-}" ] || [ -n "${GITHUB_TOKEN:-}" ]; then
-  gh_auth=(-H "Authorization: Bearer ${GITHUB_PAT:-${GITHUB_TOKEN:-}}")
-fi
+# Update script for the `reasonix-desktop` package.
+#
+# Upstream `esengine/DeepSeek-Reasonix` publishes several independent release
+# lines from different branches, each with its own tag namespace:
+#
+#   desktop-v*    the 1.x desktop app (branch `main-v2`)  <- this package
+#   studio-v*     the 2.x Studio desktop app
+#   v*, npm-v*    the 2.x CLI / npm package
+#
+# Only `desktop-v*` is relevant here: Studio is a different upstream product
+# and would be packaged separately, so this script must not be pointed at
+# `studio-v*` to "keep up" with it.
+#
+# GitHub's repository-wide "latest" release is whichever line happened to
+# publish most recently, so `/releases/latest` now resolves to a `studio-v*`
+# (or `v*`) tag and the previous check failed with
+#   "latest release tag does not match desktop-v<version>"
+# whenever the desktop line was not the newest of them. Version discovery
+# therefore lists the `desktop-v*` tags directly with `git ls-remote`, which is
+# also exempt from the REST API rate limit that `check-updates.sh` would run
+# into when it executes every package's update script in one go.
+#
+# A tag can exist before (or entirely without) its GitHub Release assets, so
+# the newest tags are probed in descending order and the first one whose Linux
+# tarball actually resolves is used.
 
 usage() {
   echo "Usage: $(basename "$0") [version]" >&2
   echo "       $(basename "$0") -f|--force <version>" >&2
 }
 
+repo_url="https://github.com/esengine/DeepSeek-Reasonix"
+asset_name="Reasonix-linux-amd64.tar.gz"
+# How many of the newest `desktop-v*` tags to probe before giving up. Keeps the
+# runtime bounded when several recent tags have no published release assets.
+max_probes=10
+
 force=false
+auto=false
 
+asset_url() {
+  printf '%s/releases/download/desktop-v%s/%s\n' "$repo_url" "$1" "$asset_name"
+}
+
+icon_url() {
+  printf 'https://raw.githubusercontent.com/esengine/DeepSeek-Reasonix/desktop-v%s/desktop/build/appicon.png\n' "$1"
+}
+
+# Succeed only if the given asset URL is downloadable. A tag whose release
+# assets were never uploaded answers 404, which `curl -f` turns into a failure.
+release_asset_exists() {
+  curl -fsIL -o /dev/null -- "$1" 2>/dev/null
+}
+
+# All `desktop-v<X.Y.Z>` tag versions, oldest first. Pre-release tags such as
+# `desktop-v1.40.0-rc.1` are skipped on purpose: they are not releases, and
+# version-sorting them against the plain `X.Y.Z` tags would rank them above the
+# stable version they precede.
+list_desktop_versions() {
+  git ls-remote --tags --refs "$repo_url" 'refs/tags/desktop-v*' \
+    | sed -n 's|^[[:xdigit:]]*[[:space:]]*refs/tags/desktop-v\(.*\)$|\1|p' \
+    | grep -Ex '[0-9]+(\.[0-9]+)+' \
+    | sort -V
+}
+
+# Newest published desktop release: walk the tags from newest to oldest and
+# stop at the first one whose Linux tarball is actually downloadable.
 latest_version() {
-  local tag
-  tag="$(curl -fsSL "${gh_auth[@]}" "https://api.github.com/repos/esengine/DeepSeek-Reasonix/releases/latest" \
-    | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p')"
+  local versions candidate probes=0
+  versions="$(list_desktop_versions || true)"
+  if [ -z "$versions" ]; then
+    echo "Error: found no desktop-v* tag at $repo_url (network failure, or upstream renamed the desktop line)" >&2
+    return 1
+  fi
 
-  case "$tag" in
-    desktop-v*)
-      printf '%s\n' "${tag#desktop-v}"
-      ;;
-    *)
-      echo "Error: latest release tag does not match desktop-v<version>: $tag" >&2
-      exit 1
-      ;;
-  esac
+  while IFS= read -r candidate; do
+    if release_asset_exists "$(asset_url "$candidate")"; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+    probes=$((probes + 1))
+    if [ "$probes" -ge "$max_probes" ]; then
+      break
+    fi
+  done < <(printf '%s\n' "$versions" | sort -Vr)
+
+  echo "Error: none of the $probes newest desktop-v* tags publishes $asset_name" >&2
+  return 1
 }
 
 case "$#" in
   0)
     version="$(latest_version)"
+    auto=true
     ;;
   1)
     case "$1" in
@@ -90,8 +150,17 @@ if [ "$force" = false ] && [ "$current_version" = "$version" ]; then
   exit 0
 fi
 
-app_icon_url="https://raw.githubusercontent.com/esengine/DeepSeek-Reasonix/desktop-v${version}/desktop/build/appicon.png"
-src_url="https://github.com/esengine/DeepSeek-Reasonix/releases/download/desktop-v${version}/Reasonix-linux-amd64.tar.gz"
+src_url="$(asset_url "$version")"
+app_icon_url="$(icon_url "$version")"
+
+# An explicitly requested version was not probed above; check it now so a typo
+# or an unpublished release fails here with a clear message instead of as an
+# opaque prefetch error below.
+if [ "$auto" = false ] && ! release_asset_exists "$src_url"; then
+  echo "Error: no $asset_name published for desktop-v$version" >&2
+  echo "       $src_url" >&2
+  exit 1
+fi
 
 prefetch_hash() {
   nix --extra-experimental-features nix-command store prefetch-file --json "$1" \
