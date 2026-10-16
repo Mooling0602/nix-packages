@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Apply the three Desktop shell patches to the bundled main process.
+ * Apply the Desktop shell patches to the bundled main process.
  *
  * The desktop package assembles the unmodified upstream build; it does not
  * re-run TypeScript or tsdown. Four Linux behaviours upstream gates on

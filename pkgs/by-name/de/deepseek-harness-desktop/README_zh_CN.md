@@ -22,8 +22,9 @@
 （与上游构建产出的 `lib/`、`renderer/` 及 workspace 包同一份），配上
 nixpkgs 的 Electron，写出 `app.getAppPath()`/`process.resourcesPath` 期望的
 资源目录树。上游源码文件完全不动、也不重新编译；唯一被改写的文件是打包后的
-主进程 `resources/app/lib/main.js`，安装阶段给它打上四处最小的 Linux 补丁
-（见下节）。
+主进程 `resources/app/lib/main.js`，安装阶段给它打上几处最小的 Linux 补丁：
+四处 shell 行为由 `desktop-shell-patch.mjs` 应用，两处窗口毛玻璃由
+`desktop-window-glass.mjs` 应用（见下文）。
 
 产物行为与官方桌面版一致：启动本地 dsh 服务、打开桌面窗口，并从
 `resources/runtime/` 读取同一套 skill、pnpm 与 primary-runtime 负载。
@@ -56,6 +57,75 @@ nixpkgs 的 Electron，写出 `app.getAppPath()`/`process.resourcesPath` 期望�
   Host 以独立进程组启动，终端信号只作用于外壳——改编自
   [Moraxyc/deepseek-harness.nix 的 `desktop-signal-shutdown.patch`](https://github.com/Moraxyc/deepseek-harness.nix/commit/c9999f47789aa77f21366571c8f05449cd671f49)，
   待上游处理 Linux 终端信号后即可移除。
+
+### 窗口毛玻璃
+
+上游只为 macOS 窗口提供半透明、背景模糊的材质（`vibrancy: "sidebar"` 加一个
+全透明的 `backgroundColor`），并配上前端在 `html[data-platform=darwin]` 下
+清除文档背景的规则，以及 preload 用 `process.platform` 标记文档根。Linux 通过
+`desktop-window-glass.mjs` 获得同样的两半，这正是让合成器的模糊得以透出来的
+条件：
+
+- 主窗口以 `transparent: true` 加全透明 `backgroundColor` 创建，是紧邻其后的
+  darwin 分支在 Linux 上的对应物。Electron 在 Linux 上没有 vibrancy，也没有
+  `backgroundMaterial`；而缺少 `transparent` 时它交给合成器的是不透明表面，
+  页面再怎么调样式也透不出来。
+- bundle 自己 `serveWebDocument()` 送出的文档会被注入一段样式表，承载前端为
+  darwin 发布的那批规则在 Linux 上的对应物。要让背景透出来，得先请四个表面
+  让开：`html` 与 `body` 的背景、frame 元素（换成它自身 `--dsw-alias-bg-base`
+  的 72% 着色，好让文字在模糊壁纸上依旧清晰）、侧边栏列以及其内层表面消费的
+  `--dsw-specific-sidebar-fill` 令牌、以及对话根节点。少清任何一个都足以把模糊
+  盖住，因为一层不透明表面就能挡住其余全部。内容自身的背景保持不变，卡片与面板
+  仍然清晰可读，毛玻璃从界面四周显现。
+
+  这些规则全靠特异度生效，全程没有一处 `!important`，并避开构建产生的哈希
+  类名：写死哈希经不起上游升级。在运行中的窗口上实测，不透明像素占整个表面的
+  10.8%，且每一块都属于内容卡片。`prefers-reduced-transparency: reduce` 会把
+  frame 恢复为不透明，与上游自带的回退一致。
+
+前端 dist 中的文件一律不改写。它们是上游构建产物、文件名带内容哈希，改它们比
+注入更脆；而注入点（外壳自己的文档处理器，上游已经用同一手法往同一个
+`<head>` 里注入启动脚本）无论前端从哪里加载都会被走到。注入的规则在构造上对
+其他页面无效：只有应用窗口的 preload 会调用 `markDocumentPlatform()`，因此
+`dsh-app://shell/*` 提供的渲染页（欢迎页、更新对话框、强制更新页）永远不会命中
+该选择器，继续保留各自的不透明背景。
+
+模糊本身由合成器负责，因此需要在合成器侧有一条窗口规则，且 niri 默认不开
+`blur`，必须有规则显式打开。是否还需要做什么，取决于**会话实际加载的**那份配置：
+只要其中已有针对所有窗口（或针对本应用 app id）开启该效果的规则即可，这种情况下
+本包无需任何额外配置。
+
+动手改之前，先确认运行中的会话到底读的是哪个文件。niri 从环境变量 `NIRI_CONFIG`
+取值，它不一定是 `~/.config/niri/config.kdl`：
+
+```console
+$ tr '\0' '\n' < /proc/$(pgrep -x niri)/environ | grep NIRI_CONFIG
+NIRI_CONFIG=/home/user/.config/niri-some-flavour/config.kdl
+```
+
+若该文件（或它 include 进来的文件）已有带 `blur true` 且**不带 `match`**（即匹配
+所有窗口）的 `background-effect` 块，窗口就已经是毛玻璃，无需再配置。否则向该文件
+添加下面这条规则；本包针对 [niri](https://github.com/YaLTeR/niri) 26.04 及更新版本
+编写（即它的 `ext-background-effect` 支持与 `background-effect` 窗口规则）：
+
+```kdl
+window-rule {
+    match app-id=r#"^deepseek-ai-dsh-desktop$"#
+    background-effect {
+        blur true
+    }
+}
+```
+
+其中的 app id 就是 Electron 从上游应用清单推导出的那个，也正是
+`desktop-identity.mjs` 所校验、安装的 `.desktop` 条目里 `StartupWMClass` 所携带
+的值（见下节「桌面身份」）。若合成器没有该规则，窗口就只是透明：壁纸未经模糊
+直接透过页面底色，其上的文字可能损失对比度。要彻底关掉该效果，去掉规则即可，
+或者构建时跳过第 2b 步。
+
+窗口本身保持 `frame: true`：niri 以服务端装饰接管圆角、边框与焦点环
+（`prefer-no-csd`、`clip-to-geometry`、`draw-border-with-background false`），
+客户端不需要也不应该绘制装饰或自备拖拽区域。
 
 ### 桌面身份
 
@@ -112,7 +182,7 @@ resources/icon.png                          窗口/任务栏图标
 `lib/main.js`）只做类型检查，**不与任何值比对**。陈旧的值会被静默接受，因此
 构建阶段拒绝猜测。
 
-构建期会做七项检查，而不是留到用户的启动阶段才发现问题：
+构建期会做八项检查，而不是留到用户的启动阶段才发现问题：
 
 - `desktop-coverage.mjs` 校验打包后外壳里的每一个裸导入都能在
   `resources/app/node_modules` 中解析，并校验上游
@@ -121,6 +191,8 @@ resources/icon.png                          窗口/任务栏图标
   `ERR_MODULE_NOT_FOUND`。
 - `desktop-shell-patch.mjs` 只接受与锚点完全一致的替换，并对改写后的 bundle
   做语法检查；上游升级若挪动了被打补丁的代码，构建会点名是哪一处补丁失败。
+- `desktop-window-glass.mjs` 让两处窗口毛玻璃补丁遵守同一套纪律：锚点不再恰好
+  出现一次就点名失败，改写后的 bundle 会再被语法检查一次。
 - `desktop-identity.mjs` 从随包的应用清单重新推导桌面 id，条目文件名、
   `StartupWMClass` 或图标与之不符就拒绝该产物，Wayland 窗口不会无声地失去图标。
 - `desktop-inspector-worker.mjs` 从随包的运行时中读出实验性 Inspector 的 Worker

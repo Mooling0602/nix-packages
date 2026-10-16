@@ -26,8 +26,9 @@ already-built application from `deepseek-harness-git` (the same `lib/`,
 nixpkgs' Electron, and writes the resource tree that
 `app.getAppPath()`/`process.resourcesPath` expect. No upstream source file is
 touched and nothing is recompiled: the only file rewritten is the bundled main
-process `resources/app/lib/main.js`, which receives four minimal Linux patches
-at install time (see below).
+process `resources/app/lib/main.js`, which receives the minimal Linux patches
+applied at install time: four shell behaviours from `desktop-shell-patch.mjs`
+and two window-glass patches from `desktop-window-glass.mjs` (see below).
 
 The result behaves like the official desktop build: it starts a local dsh
 server, opens the desktop window, and reads the same skill, pnpm and
@@ -68,6 +69,95 @@ the code fails the build instead of shipping a half-patched shell:
   terminal signals belong to the shell alone — adapted from
   [Moraxyc/deepseek-harness.nix `desktop-signal-shutdown.patch`](https://github.com/Moraxyc/deepseek-harness.nix/commit/c9999f47789aa77f21366571c8f05449cd671f49),
   to be dropped once upstream handles Linux terminal signals.
+
+### Window glass
+
+Upstream gives the macOS window a translucent, backdrop-blurred material
+(`vibrancy: "sidebar"` and a transparent `backgroundColor`), pairs it with a
+packaged Web UI rule that clears the document background under
+`html[data-platform=darwin]`, and has the preload mark the document root with
+`process.platform`. Linux gets the same two halves from
+`desktop-window-glass.mjs`, because that is what lets a compositor's blur show
+through:
+
+- The main window is created with `transparent: true` and a fully transparent
+  `backgroundColor`, the counterpart of the darwin spread directly below it.
+  Electron offers no vibrancy or `backgroundMaterial` on Linux, and without
+  `transparent` it hands the compositor an opaque surface that no page styling
+  can reveal.
+- The document the bundle serves from its own `serveWebDocument()` gets one
+  injected style sheet holding the Linux counterpart of the rules the packaged
+  Web UI ships for darwin. Four surfaces have to step aside before the backdrop
+  is visible: the `html` and `body` background, the frame element (replaced by a
+  72% tint of its own `--dsw-alias-bg-base`, which keeps text legible over the
+  blurred wallpaper), the sidebar column together with the
+  `--dsw-specific-sidebar-fill` token its inner surface consumes, and the
+  conversation root. Missing any one of them is enough to hide the blur, since a
+  single opaque layer covers the rest. Content keeps the backgrounds it sets for
+  itself, so cards and panels stay legible and the glass shows around the
+  interface.
+
+  The selectors carry every rule on specificity alone, with no `!important`
+  anywhere, and avoid the build's hashed class names: a hardcoded hash would not
+  survive an upstream bump. On the running window, opaque pixels cover 10.8% of
+  the surface and every one of them belongs to a content card.
+  `prefers-reduced-transparency: reduce` restores an opaque frame, the same
+  fallback upstream ships.
+
+Nothing in the packaged Web dist is rewritten. Those files are upstream build
+output whose names carry content hashes, so patching them would be the more
+fragile of the two options, and the injection point (the shell's own document
+handler, which already injects its boot script into the same `<head>`) is
+reached wherever the frontend is served from. The injected rule is inert
+elsewhere by construction: only the application window's preload calls
+`markDocumentPlatform()`, so the renderer pages served from `dsh-app://shell/*`
+(welcome, update dialog, mandatory update) never match the selector and keep
+their own opaque background.
+
+The blur itself belongs to the compositor, so it needs a window rule there, and
+niri leaves `blur` off unless a rule turns it on. Whether anything is left to do
+depends on the configuration the session actually loads: a rule that enables the
+effect for every window, or for this app id, is enough, and then this package
+needs no configuration at all.
+
+Check the file the running session reads before editing anything. niri takes it
+from the `NIRI_CONFIG` environment variable, which is not necessarily
+`~/.config/niri/config.kdl`:
+
+```console
+$ tr '\0' '\n' < /proc/$(pgrep -x niri)/environ | grep NIRI_CONFIG
+NIRI_CONFIG=/home/user/.config/niri-some-flavour/config.kdl
+```
+
+If that file, or anything it includes, already carries a `background-effect`
+block with `blur true` and no `match` (which matches every window), the window is
+already frosted and nothing more is required. Otherwise add a rule to that file,
+on [niri](https://github.com/YaLTeR/niri) 26.04 or newer, whose
+`ext-background-effect` support and `background-effect` window rule this was
+written against:
+
+```kdl
+window-rule {
+    match app-id=r#"^deepseek-ai-dsh-desktop$"#
+    background-effect {
+        blur true
+    }
+}
+```
+
+The app id is the one Electron derives from upstream's application manifest,
+which is exactly what `desktop-identity.mjs` enforces and what the installed
+`.desktop` file carries as `StartupWMClass` (see Desktop identity below). Under
+a compositor without such a rule the window is simply transparent: the
+wallpaper shows through the page backdrop unblurred, and text over it can lose
+contrast. To turn the effect off entirely, drop the rule, or build this package
+without step 2b.
+
+The window itself keeps `frame: true`: niri draws the decorations server side
+(rounded corners, border and focus ring, through `prefer-no-csd`,
+`clip-to-geometry` and `draw-border-with-background false`), so the client
+neither draws decorations nor needs drag regions of its own. The patch adds no
+frame option and no `-webkit-app-region` rule.
 
 ### Desktop identity
 
@@ -135,7 +225,7 @@ Both matter because the shipped reader (`readDesktopRuntime`, inlined into
 `lib/main.js`) type-checks them without comparing either to anything. A stale
 value would therefore be accepted silently, so the build refuses to guess.
 
-Seven things are checked at build time rather than discovered at launch:
+Eight things are checked at build time rather than discovered at launch:
 
 - `desktop-coverage.mjs` checks that every bare import in the packaged shell
   resolves inside `resources/app/node_modules`, and that every dependency in
@@ -145,6 +235,9 @@ Seven things are checked at build time rather than discovered at launch:
 - `desktop-shell-patch.mjs` refuses to patch anything but an exact match of
   each anchor, and syntax-checks the rewritten bundle, so an upstream bump that
   moves the patched code names the patch instead of shipping half of it.
+- `desktop-window-glass.mjs` holds the two window-glass patches to the same
+  rule: an anchor that no longer occurs exactly once fails the build by name,
+  and the rewritten bundle is syntax-checked again afterwards.
 - `desktop-identity.mjs` re-derives the desktop id from the shipped manifest
   and refuses a tree whose entry name, `StartupWMClass` or icons disagree with
   it, so a Wayland window cannot quietly stop matching its icon.

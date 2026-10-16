@@ -14,7 +14,7 @@
 #   resources/icon.png                          window/taskbar icon
 #
 # Beyond assembly, the install phase rewrites the bundled main process with
-# four Linux shell patches (desktop-shell-patch.mjs):
+# four Linux shell behaviours (desktop-shell-patch.mjs):
 #
 #   - the tray icon is created on Linux as well (upstream gates it on win32),
 #     registering over StatusNotifierItem like every Electron tray on Linux and
@@ -36,6 +36,14 @@
 # other artifact stay untouched. Each patch asserts an anchor verified to occur
 # exactly once in the bundle, so an upstream bump that moves the code fails the
 # build instead of shipping a half-patched shell.
+#
+# The same file takes two further Linux patches (desktop-window-glass.mjs), which
+# give the window the glass treatment upstream implements for macOS: the main
+# window is created transparent, and the document the bundle serves from its own
+# serveWebDocument() gets a style sheet that clears the surfaces painting over
+# the compositor's blur, leaving the frame a translucent tint. Both are the Linux
+# counterpart of the darwin branches right below them. A compositor makes the
+# blur itself; the README documents the window rule that enables it.
 #
 # The Linux desktop identity is not patched but reconciled (desktop-identity.mjs):
 # Electron derives the Wayland app id and X11 WM_CLASS from the application
@@ -199,10 +207,12 @@
 , nodeRuntimeVersion
 
   # Build-time helpers, and the upstream sources they read: the shell-patch
-  # script (four Linux patches applied to the bundled main process), the
-  # coverage guard scripts, the Host manifest whose dependencies must all be
-  # linked, and the source file declaring the lifecycle protocol generation.
+  # script (four Linux behaviours applied to the bundled main process), the window
+  # glass patch (two more, on the same file), the coverage guard scripts, the
+  # Host manifest whose dependencies must all be linked, and the source file
+  # declaring the lifecycle protocol generation.
 , shellPatchScript
+, windowGlassScript
 , coverageScript
 , descriptorScript
 , identityScript
@@ -399,7 +409,7 @@ stdenvNoCC.mkDerivation {
     find "$app/lib" -name '*.tsbuildinfo' -delete
     cp -a ${appModulesTree} "$app/node_modules"
 
-    # 2a. The four Linux shell patches (see the header and
+    # 2a. The four Linux shell behaviours (see the header and
     #     desktop-shell-patch.mjs): the tray on Linux with the PNG icon, the
     #     one-time background-close notice on Linux, the DSH_DESKTOP_HIDE_MENUBAR
     #     window menu bar hook (default: hidden), and graceful SIGINT/SIGTERM
@@ -410,6 +420,11 @@ stdenvNoCC.mkDerivation {
     #     here instead of shipping a half-patched shell. The script also runs
     #     `node --check` over the rewritten bundle.
     ${nodejs}/bin/node ${shellPatchScript} "$app/lib/main.js"
+
+    # 2b. The Linux window glass, on the same file and under the same anchor
+    #     discipline: the window becomes transparent and the document it serves
+    #     gets the rule that lets the compositor's blur show through.
+    ${nodejs}/bin/node ${windowGlassScript} "$app/lib/main.js"
 
     # 3. The bundled dsh runtime, inside the app directory (see note 2), plus the
     #    descriptor readDesktopRuntime() validates before the Host is started.

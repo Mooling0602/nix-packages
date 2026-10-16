@@ -11,10 +11,10 @@
 # Electron. (The two outputs' *runtime closures* are in fact independent; it is
 # the build cost, not closure size, that forces the split.)
 #
-# The desktop assembly, four Linux shell patches and the notification probe are
+# The desktop assembly, the Linux shell patches and the notification probe are
 # new here; desktop.nix documents the on-disk layout, the five load-bearing
 # details (each verified against the unmodified upstream application) and the
-# patches (desktop-shell-patch.mjs).
+# patches (desktop-shell-patch.mjs and desktop-window-glass.mjs).
 {
   lib
 , callPackage
@@ -271,8 +271,9 @@ callPackage ./desktop.nix {
   # the build when an upstream bump changes something these lists assume, which
   # is what makes an unattended version bump safe to trust. The shell-patch
   # script likewise fails the build when the bundle no longer matches the
-  # anchors its Linux patches were written against, and the identity script
-  # fails it when the desktop identity no longer matches the window Electron
+  # anchors its Linux patches were written against, and the window-glass script
+  # does the same for its two. The identity script fails it when the desktop
+  # identity no longer matches the window Electron
   # will report. The Inspector guard reads the Worker spawn site back out of the
   # shipped runtime and probes it under this build's Electron (see
   # deepseek-harness-git's installPhase patch): failing developer mode is not
@@ -280,6 +281,7 @@ callPackage ./desktop.nix {
   coverageScript = ./desktop-coverage.mjs;
   descriptorScript = ./desktop-runtime-json.mjs;
   shellPatchScript = ./desktop-shell-patch.mjs;
+  windowGlassScript = ./desktop-window-glass.mjs;
   identityScript = ./desktop-identity.mjs;
   inspectorWorkerScript = ./desktop-inspector-worker.mjs;
   pnpmEntryScript = ./desktop-runtime-pnpm.mjs;
