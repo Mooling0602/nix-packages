@@ -70,3 +70,9 @@ profile-resolution 引导模块，而引导模块访问内部加载器时没有 
 脚本会解析标签（及其 commit）、预取 `srcHash`、在上游升级 `packageManager`
 时刷新固定的 pnpm 版本，并从上游同步 `pnpm-lock.yaml`。不再需要探测依赖
 store 的哈希：`importPnpmLock` 直接从 lockfile 的 integrity 字段推导缓存。
+
+它也会同步 [`../deepseek-harness-desktop`](../deepseek-harness-desktop) 中
+复述本包版本的 `当前版本：` 一行。该包里的版本**证据**——
+`desktop-shell-patch.mjs` / `desktop-window-glass.mjs` 中每个锚点最后一次
+核对时所在的 bundle，以及 sharp 注释量测时用的 Electron、Node、libvips
+版本——刻意保持不动，原因见该包 README。

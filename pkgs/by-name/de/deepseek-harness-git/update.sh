@@ -25,6 +25,16 @@ fi
 #   2. recompute srcHash (the GitHub tag tarball hash)
 #   3. refresh the pinned pnpm when upstream bumps `packageManager`
 #   4. sync the vendored pnpm-lock.yaml from upstream
+#   5. sync the version restated in deepseek-harness-desktop's two READMEs
+#
+# What is deliberately NOT touched: deepseek-harness-desktop's own files never
+# carry a pin (package.nix and desktop.nix read `version`/`pnpmVersion` out of
+# this package's hashes.json), but three places record versions as *evidence*
+# rather than as pins -- the bundle version each patch anchor in
+# desktop-shell-patch.mjs / desktop-window-glass.mjs was last verified against,
+# and the Electron/Node/libvips versions desktop.nix's sharp notes were measured
+# on. Rewriting those on a bump would turn a recorded measurement into a claim
+# nobody re-checked, so they stay put until someone re-verifies them by hand.
 
 usage() {
   echo "Usage: $(basename "$0") [version]" >&2
@@ -106,12 +116,39 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 hashes_json="$script_dir/hashes.json"
 readme="$script_dir/README.md"
 readme_zh="$script_dir/README_zh_CN.md"
+# The desktop package has no pin file of its own: its package.nix and desktop.nix
+# read `version`/`pnpmVersion` from hashes.json above. Only its READMEs restate
+# the version, so they are the one thing an update has to keep in sync.
+desktop_dir="$script_dir/../deepseek-harness-desktop"
+desktop_readme="$desktop_dir/README.md"
+desktop_readme_zh="$desktop_dir/README_zh_CN.md"
 current_version="$(sed -n 's/.*"version": *"\([^"]*\)",/\1/p' "$hashes_json")"
 repo_root="$(cd -- "$script_dir" && git rev-parse --show-toplevel 2>/dev/null || echo "$script_dir/../../..")"
+
+# Anchor on the trailing "(follows ...)" / "（跟随 ...）" clause rather than on the
+# bare version, so no other version in those files can ever be caught by the
+# rewrite. Two patterns, not one, because the two lines differ in both language
+# and punctuation.
+update_desktop_readme_versions() {
+  [ -f "$desktop_readme" ] || return 0
+
+  sed -i -E "s|^Current version: [^ ]+ \(follows |Current version: $version (follows |" "$desktop_readme"
+  sed -i -E "s|^当前版本：.*（跟随 |当前版本：$version（跟随 |" "$desktop_readme_zh"
+
+  # A silent no-op here means the wording changed and the package would keep
+  # advertising the old version, so say so instead of exiting 0.
+  if ! grep -qF "Current version: $version (follows" "$desktop_readme"; then
+    echo "Warning: $desktop_readme no longer carries a 'Current version: <ver> (follows ' line; update it by hand" >&2
+  fi
+  if ! grep -qF "当前版本：$version（跟随" "$desktop_readme_zh"; then
+    echo "Warning: $desktop_readme_zh no longer carries a '当前版本：<ver>（跟随 ' line; update it by hand" >&2
+  fi
+}
 
 update_readme_versions() {
   sed -i -E "s|Current version: [0-9][^ ]*\.|Current version: $version.|" "$readme"
   sed -i -E "s|当前版本：[^。]+。|当前版本：$version。|" "$readme_zh"
+  update_desktop_readme_versions
 }
 
 if [ "$force" = false ] && [ "$current_version" = "$version" ]; then
@@ -188,5 +225,7 @@ update_readme_versions
 echo "Updated deepseek-harness-git to $version ($rev)"
 echo "srcHash: $src_hash"
 echo "pnpm-lock.yaml synced from upstream"
+echo "deepseek-harness-desktop READMEs now follow $version"
+echo "(pinned evidence versions in desktop-*.mjs and desktop.nix were left untouched)"
 echo
 echo "Build with: nix build '.#deepseek-harness-git'"

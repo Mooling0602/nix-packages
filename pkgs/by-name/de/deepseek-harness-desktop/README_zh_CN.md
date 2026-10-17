@@ -8,7 +8,7 @@
 的 Electron 外壳，重新打包以适配 Linux。上游只发布 Windows 与 macOS 安装包，
 本包为 `x86_64-linux` 产出等价的运行时目录树。
 
-当前版本：0.2.0-rc.2（跟随 [`deepseek-harness-git`](../deepseek-harness-git)）。
+当前版本：0.2.1-rc.1（跟随 [`deepseek-harness-git`](../deepseek-harness-git)）。
 
 ## 这是什么
 
@@ -156,7 +156,7 @@ Wayland 的 `app_id`、X11 的 `WM_CLASS`、`.desktop` 文件名以及该条目�
 
 ## 目录结构
 
-```
+```plaintext
 deepseek-harness                            Electron 可执行文件
 resources/app/                              app.getAppPath()
 resources/app/dsh/                          内置 dsh 运行时
@@ -222,6 +222,22 @@ resources/icon.png                          窗口/任务栏图标
 正因如此，升级版本只需运行
 `pkgs/by-name/de/deepseek-harness-git/update.sh`——本包没有自己的 pin，
 也不存在单独的更新步骤；它的模块清单会在构建时针对新的上游目录树被校验。
+该脚本同时会同步本文件顶部那行 `当前版本：`，除此之外不再动本包的任何文件。
+
+本包中有一些版本号是**记录下来的证据**而非 pin，更新脚本故意不碰它们：
+
+- 每个补丁最后一次人工核对时所在的 bundle 版本，位于
+  `desktop-shell-patch.mjs`（当前为 `0.2.0-rc.2`）与
+  `desktop-window-glass.mjs`（当前为 `0.2.1-alpha.4`）的文件头。它们是**证据**
+  而非 pin：锚点是否仍然有效，由构建针对每一棵新目录树重新检查，所以停在那儿
+  的数字是诚实的——它说明补丁最后一次被肉眼审视是在哪个 bundle 上。自动改写它
+  等于声称做过一次并未发生的复核。
+- `desktop.nix` 第 5 条注释里的 Electron、Node 与 libvips 版本。sharp 的崩溃是在
+  那几个确切构建上测出来的；正是这些数字让这段注释可以被核对，而版本升级不会
+  改变其中任何一项测量结果。
+
+需要改动时请手动修改，并且只在真的重新核对过锚点、或在新版本上重跑过 sharp
+探针之后。
 
 ## 用法
 
@@ -233,7 +249,9 @@ nix build .#deepseek-harness-desktop
 或在 NixOS 配置中：
 
 ```nix
-environment.systemPackages = [ inputs.nix-packages.packages.${pkgs.system}.deepseek-harness-desktop ];
+environment.systemPackages = [
+  inputs.nix-packages.packages.${pkgs.system}.deepseek-harness-desktop
+];
 ```
 
 ## 说明与限制

@@ -8,7 +8,7 @@
 repacked for Linux. Upstream ships installers for Windows and macOS only; this
 package produces the equivalent runtime tree for `x86_64-linux`.
 
-Current version: 0.2.0-rc.2 (follows [`deepseek-harness-git`](../deepseek-harness-git)).
+Current version: 0.2.1-rc.1 (follows [`deepseek-harness-git`](../deepseek-harness-git)).
 
 ## What this is
 
@@ -278,7 +278,25 @@ Eight things are checked at build time rather than discovered at launch:
 Because of this, bumping the version is
 `pkgs/by-name/de/deepseek-harness-git/update.sh` alone — this package has no
 pin of its own and needs no separate update step. Its lists are checked against
-the new upstream tree during the build.
+the new upstream tree during the build. That script also keeps the
+`Current version:` line at the top of this file in sync, and nothing else here.
+
+Some version numbers in this package are recorded evidence rather than pins,
+and the update script deliberately leaves them alone:
+
+- The bundle version each patch was last verified against, in the header of
+  `desktop-shell-patch.mjs` (currently `0.2.0-rc.2`) and of
+  `desktop-window-glass.mjs` (currently `0.2.1-alpha.4`). Those are evidence,
+  not pins: the anchors are re-checked against every new tree by the build
+  itself, so a stale number is honest — it says which bundle the patch was last
+  inspected by eye on. Rewriting it automatically would claim a re-verification
+  that never happened.
+- The Electron, Node and libvips versions in note 5 of `desktop.nix`. The sharp
+  crash was measured on those exact builds; the numbers are what makes the
+  note checkable, and a bump here changes none of the measurements.
+
+Update them by hand, and only after actually re-checking the anchors or
+re-running the sharp probe on the new versions.
 
 ## Usage
 

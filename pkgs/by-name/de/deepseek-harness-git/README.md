@@ -79,3 +79,10 @@ The script resolves the tag (and its commit), prefetches `srcHash`, refreshes
 the pinned pnpm when upstream bumps `packageManager`, and syncs
 `pnpm-lock.yaml` from upstream. No dependency-store hash has to be probed:
 `importPnpmLock` derives the cache from the lockfile's integrity hashes.
+
+It also updates the `Current version:` line in
+[`../deepseek-harness-desktop`](../deepseek-harness-desktop), which restates
+this package's version. That package's version *evidence* — the bundle each
+anchor in `desktop-shell-patch.mjs` / `desktop-window-glass.mjs` was last
+verified against, and the Electron/Node/libvips versions its sharp note was
+measured on — is left untouched on purpose; see its README.
