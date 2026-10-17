@@ -1,7 +1,7 @@
 {
-  "version": "0.2.1-rc.1",
-  "rev": "1600d8a1e140dcde43a1a0941940a0480712c011",
-  "srcHash": "sha256-yC3tr0N0UDMWZNNeSTP1/p2tB5aBhvgIUN86gzmQDBM=",
+  "version": "0.2.1-rc.2",
+  "rev": "687f282e8625c6b8d11ff58211a90524be2e4317",
+  "srcHash": "sha256-WcPs3q4NFTRnH2y1Rc/o7/rvJAOe8s7isoTQYf8APFU=",
   "pnpmVersion": "11.28.5",
   "pnpmHash": "sha256-HvTkR6aHE2VgZPPxdMD0RxmWCgQ6P+IpkWnQjPHb+O4="
 }

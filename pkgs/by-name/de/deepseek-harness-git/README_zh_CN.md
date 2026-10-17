@@ -7,7 +7,7 @@ agent 框架与 CLI，从上游 git 发布标签**源码构建**。与
 [deepseek-harness](../deepseek-harness)（npm tarball）不同，本包追踪 `dsh-v*`
 标签，因此可以提供未发布到 npm 的预发布版（如 `0.1.2-alpha.1`）。
 
-当前版本：0.2.1-rc.1。
+当前版本：0.2.1-rc.2。
 
 构建流程与上游发布工作流一致：由 `importPnpmLock` 把 vendored 的
 `pnpm-lock.yaml` 转换为逐包 tarball 缓存，固定版本的 pnpm 通过本地重放
@@ -72,7 +72,7 @@ profile-resolution 引导模块，而引导模块访问内部加载器时没有 
 store 的哈希：`importPnpmLock` 直接从 lockfile 的 integrity 字段推导缓存。
 
 它也会同步 [`../deepseek-harness-desktop`](../deepseek-harness-desktop) 中
-复述本包版本的 `当前版本：` 一行。该包里的版本**证据**——
+复述本包版本的 `当前版本：0.2.1-rc.2。该包里的版本**证据**——
 `desktop-shell-patch.mjs` / `desktop-window-glass.mjs` 中每个锚点最后一次
 核对时所在的 bundle，以及 sharp 注释量测时用的 Electron、Node、libvips
 版本——刻意保持不动，原因见该包 README。

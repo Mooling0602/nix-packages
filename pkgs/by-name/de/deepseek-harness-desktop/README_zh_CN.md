@@ -8,7 +8,7 @@
 的 Electron 外壳，重新打包以适配 Linux。上游只发布 Windows 与 macOS 安装包，
 本包为 `x86_64-linux` 产出等价的运行时目录树。
 
-当前版本：0.2.1-rc.1（跟随 [`deepseek-harness-git`](../deepseek-harness-git)）。
+当前版本：0.2.1-rc.2（跟随 [`deepseek-harness-git`](../deepseek-harness-git)）。
 
 ## 这是什么
 
