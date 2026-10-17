@@ -87,22 +87,36 @@ through:
   can reveal.
 - The document the bundle serves from its own `serveWebDocument()` gets one
   injected style sheet holding the Linux counterpart of the rules the packaged
-  Web UI ships for darwin. Four surfaces have to step aside before the backdrop
+  Web UI ships for darwin. Five surfaces have to step aside before the backdrop
   is visible: the `html` and `body` background, the frame element (replaced by a
   72% tint of its own `--dsw-alias-bg-base`, which keeps text legible over the
   blurred wallpaper), the sidebar column together with the
-  `--dsw-specific-sidebar-fill` token its inner surface consumes, and the
-  conversation root. Missing any one of them is enough to hide the blur, since a
-  single opaque layer covers the rest. Content keeps the backgrounds it sets for
-  itself, so cards and panels stay legible and the glass shows around the
-  interface.
+  `--dsw-specific-sidebar-fill` token its inner surface consumes, the
+  conversation root, and the composer seat. Missing any one of them is enough to
+  hide the blur, since a single opaque layer covers the rest. Content keeps the
+  backgrounds it sets for itself, so cards and panels stay legible and the glass
+  shows around the interface.
+
+  The composer seat is the one surface that is cleared rather than retinted, and
+  it is worth a note. Upstream hides the transcript scrolling under the input
+  card by fading to solid `--dsw-alias-bg-base` over a fixed 36px band; on darwin
+  that fill is invisible because the column beneath paints the same colour, but
+  over a cleared column it becomes an opaque frame around the card. Replacing it
+  with a translucent scrim only trades a black band for a grey one, and a masked
+  `backdrop-filter` is worse: on a transparent window Chromium samples the
+  window's own transparency as opaque black, so the band renders as a smeared
+  black halo. Clearing the fill leaves the seat transparent, which is the only
+  treatment that matches the cleared column around it. What the fill used to mask
+  stays masked by the card itself, which is wider than the transcript column
+  (`--dsh-composer-card-max-width` is `--dsh-chat-content-width` plus the side
+  clearance) and paints its own opaque `--dsw-specific-input-major`.
 
   The selectors carry every rule on specificity alone, with no `!important`
   anywhere, and avoid the build's hashed class names: a hardcoded hash would not
-  survive an upstream bump. On the running window, opaque pixels cover 10.8% of
-  the surface and every one of them belongs to a content card.
-  `prefers-reduced-transparency: reduce` restores an opaque frame, the same
-  fallback upstream ships.
+  survive an upstream bump. On the running window the only pixels left fully
+  opaque belong to content cards and to the input card itself.
+  `prefers-reduced-transparency: reduce` restores an opaque frame and an opaque
+  seat, the same fallback upstream ships.
 
 Nothing in the packaged Web dist is rewritten. Those files are upstream build
 output whose names carry content hashes, so patching them would be the more

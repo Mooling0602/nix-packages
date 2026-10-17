@@ -28,6 +28,18 @@
  *      to hide the blur. Content is left alone, so cards and menus keep their
  *      own backgrounds and the glass shows around the interface.
  *
+ *      One surface needs more than a cleared background. The composer seat hides
+ *      the transcript scrolling under the input card by fading to solid
+ *      var(--dsw-alias-bg-base). On darwin that fill is invisible because the
+ *      column beneath paints the same colour; over a cleared column it becomes an
+ *      opaque frame around the input card. The seat is cleared as well, and only
+ *      cleared: a translucent scrim still reads as a band, and a masked backdrop
+ *      blur is worse, because on a transparent window the blur samples the
+ *      window's own transparency as opaque black and the band turns into a
+ *      smeared black halo. What the fill used to mask stays masked anyway, by the
+ *      card itself: it is wider than the transcript column and paints its own
+ *      opaque --dsw-specific-input-major.
+ *
  *      Injecting here beats editing the dist directly: those files are upstream
  *      build output whose names carry content hashes, and the shell's document
  *      handler is reached wherever the frontend is served from.
@@ -84,7 +96,25 @@ const glassCss = [
   "html[data-platform='linux'] #root > [data-slot=root] > div{background:color-mix(in srgb,var(--dsw-alias-bg-base) 72%,transparent)}",
   "html[data-platform='linux'] [class*='sidebarCol']{background:transparent;--dsw-specific-sidebar-fill:transparent}",
   "html[data-platform='linux'] [data-slot='main.conversation'] > div{background:transparent}",
+  // The composer seat fades the transcript out under the input card: a fixed
+  // 36px band where a solid --dsw-alias-bg-base gradient wipes the text out, then
+  // solid below. On darwin the column beneath already paints that colour, so the
+  // fill is invisible; over a cleared column it is an opaque slab with a soft top
+  // edge, which is what reads as a black band around the input card. The seat
+  // keeps no fill at all here. A translucent fill or a masked backdrop blur both
+  // look wrong on a transparent window: the blur samples the window's own
+  // transparency as opaque black, so the band turns into a smeared black halo
+  // instead of glass. Clearing the fill leaves the seat transparent, which is the
+  // only treatment that matches the cleared column around it. The transcript can
+  // then reach the card's own edge, but the card is wider than the text column
+  // (--dsh-composer-card-max-width is --dsh-chat-content-width plus the side
+  // clearance), so the text stays behind the card's opaque
+  // --dsw-specific-input-major background.
+  "html[data-platform='linux'] body #root [class*='composerSeat']{background:none}",
   "@media (prefers-reduced-transparency:reduce){html[data-platform='linux'] #root > [data-slot=root] > div{background:var(--dsw-alias-bg-base)}}",
+  // An opaque frame restores the column the fill was written against; hand the
+  // seat back unchanged so the reduced-transparency path matches upstream.
+  "@media (prefers-reduced-transparency:reduce){html[data-platform='linux'] body #root [class*='composerSeat']{background:linear-gradient(180deg,transparent 0px,var(--dsw-alias-bg-base) 36px)}}",
 ].join("")
 
 const patches = [
