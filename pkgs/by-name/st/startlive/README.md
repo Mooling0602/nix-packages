@@ -34,6 +34,13 @@ usable at all — `1.2.1` has no `pyproject.toml`.
 - Qt plugins come from `qtbase`, which PySide6 links but does not propagate. `qtwayland` is
   deliberately not a dependency: `qtbase` already ships `platforms/libqwayland.so` together with
   the xdg-shell and decoration integrations.
+- `qtsvg` is a hard requirement on top of `qtbase`. The sidebar icons are SVG and Qt resolves them
+  through its `imageformats` plugin, which `qtbase` does not provide (it only bundles gif/ico/jpeg),
+  so `QIcon("…svg")` silently comes back null and those buttons render empty. PySide6 pulls `qtsvg`
+  in as a library dependency, but that does not expose the plugin.
+- `preFixup` forwards `qtWrapperArgs` to `makeWrapperArgs`. `wrapQtAppsHook` only wraps ELF
+  executables, and at that point `bin/startlive` is still a `#!python` script, so the hook's
+  `QT_PLUGIN_PATH` would otherwise be dropped — taking the SVG plugin with it.
 - The `startlive` command is the package's `mainProgram`. A desktop entry and a 512x512 icon are
   installed as well; the icon is extracted from the `.ico` upstream ships, as the source tree
   contains no other artwork. The plain `icon_left.ico` is used rather than upstream's

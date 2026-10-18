@@ -17,6 +17,8 @@
 - 可选 `pk` 附加依赖（`aiortc`、`aioice`、`certifi`）也一并打包，使 PK 窗口可用；这些 pin 恰好与 nixpkgs 完全一致。它与 `protobuf` 都只在打开 PK 窗口时才会导入，不影响启动。
 - 上游对 `pyside6`、`pillow`、`requests`、`keyring`、`cryptography` 的 `~=` 版本约束由 `pythonRelaxDeps` 解除：nixpkgs 提供的版本比这些约束允许的更新，而 StartLive 用到的 API 并无变化。`velopack` 无需处理 —— 它的环境标记本就排除了 Linux。
 - Qt 插件由 `qtbase` 提供（PySide6 链接了 Qt 但不会传递它）。刻意不依赖 `qtwayland`：`qtbase` 已经自带 `platforms/libqwayland.so` 以及 xdg-shell、窗饰等集成。
+- 在 `qtbase` 之外，`qtsvg` 是硬性依赖。侧边栏图标是 SVG，Qt 需要经由 `imageformats` 插件才能渲染，而 `qtbase` 只打包了 gif/ico/jpeg，于是 `QIcon("…svg")` 会静默返回空图标，那些按钮就显示空白。PySide6 会把 `qtsvg` 作为库依赖拉进来，但并不会暴露插件。
+- `preFixup` 把 `qtWrapperArgs` 并入 `makeWrapperArgs`。`wrapQtAppsHook` 只处理 ELF 可执行文件，而在那个阶段 `bin/startlive` 还是 `#!python` 脚本，因此 hook 设置的 `QT_PLUGIN_PATH` 会被丢弃，SVG 插件也就一起丢了。
 - `startlive` 是本包的 `mainProgram`。同时安装 desktop 文件与 512x512 图标；图标从上游的 `.ico` 中提取，因为源码树里没有其它图形资源。用的是普通的 `icon_left.ico` 而非上游的 `icon_left_macOS.ico`：后者是同一份图案加上了 macOS 风格的圆角底板，而 Linux 桌面会再裁一次。
 - 凭据存放在系统 keyring 中，因此 Linux 上需要运行 Secret Service 实现（gnome-keyring、KWallet 等）。
 

@@ -80,7 +80,27 @@ python3Packages.buildPythonApplication (finalAttrs: {
   # qtwayland is deliberately absent: qtbase already ships
   # `platforms/libqwayland.so` plus the xdg-shell and decoration integrations,
   # and qtwayland itself carries no client platform plugin.
-  buildInputs = [ qt6.qtbase ];
+  #
+  # qtsvg is required, not optional: the sidebar icons are SVG, and Qt loads
+  # SVG support through its `imageformats` plugin rather than compiling it in.
+  # `qtbase` alone only provides gif/ico/jpeg, so `QIcon("…svg")` comes back
+  # null and those icons render blank. Naming it here is what makes
+  # wrapQtAppsHook add its plugin directory to QT_PLUGIN_PATH; PySide6 pulls
+  # qtsvg in as a library dependency, which does not expose the plugin.
+  buildInputs = [
+    qt6.qtbase
+    qt6.qtsvg
+  ];
+
+  # wrapQtAppsHook only wraps ELF executables, and at preFixup time our
+  # `bin/startlive` is still a `#!python` script, so the hook's QT_PLUGIN_PATH
+  # never reaches it. Forward the arguments it collected to the Python wrapper
+  # instead, which is what actually launches the interpreter.
+  preFixup = ''
+    makeWrapperArgs+=(
+      "''${qtWrapperArgs[@]}"
+    )
+  '';
 
   pythonImportsCheck = [
     "StartLive"
