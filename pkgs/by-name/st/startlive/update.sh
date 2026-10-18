@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
-# Update startlive to the latest version published on PyPI.
+# Update startlive to the latest version tagged on GitHub.
+#
+# Upstream publishes its PyPI sdist from a workflow that requires a manual
+# approval, so PyPI can lag the GitHub release by days. The release tag is used
+# as the source instead; it carries everything the build needs.
 #
 # This script updates:
-#   1. source url + version + hash in package.nix
-#   2. the pinned PyQtDarkTheme-fork, if upstream raised its requirement
+#   1. version + hash in package.nix
+#   2. the vendored PyQtDarkTheme-fork, if upstream raised its requirement
 #   3. the version line in both READMEs
 set -euo pipefail
 
@@ -65,31 +69,43 @@ flake_root="$(cd "$script_dir/../../../.." && pwd)"
 die() { echo "Error: $*" >&2; exit 1; }
 nix_cmd() { nix --extra-experimental-features 'nix-command flakes' "$@"; }
 
+# The GitHub API rejects unauthenticated requests once its rate limit is hit,
+# so the latest release is resolved from the `/releases/latest` redirect
+# instead, which needs no API call at all.
+curl_gh() { curl -fsSL -H "User-Agent: nix-packages-update" "$@"; }
+
 # --- 1. Resolve the target version and its dependency metadata ---------------
 
-# The PyPI metadata is authoritative: upstream's GitHub tags can lag behind the
-# sdist (tag 1.2.1 has no pyproject.toml, so it cannot be built at all).
+# Tags are authoritative: upstream releases on GitHub first and only later
+# pushes the same tree to PyPI.
 if [ -z "$version" ]; then
-  version="$(curl -fsSL "https://pypi.org/pypi/startlive/json" \
-    | python3 -c 'import json, sys; print(json.load(sys.stdin)["info"]["version"])')"
+  latest_url="$(curl -fsSL -o /dev/null -w '%{url_effective}' \
+    "https://github.com/Radekyspec/StartLive/releases/latest")" \
+    || die "failed to resolve the latest release from GitHub"
+  version="${latest_url##*/}"
+  version="${version#v}"
 fi
-[ -n "$version" ] || die "failed to resolve the latest version from PyPI"
+[ -n "$version" ] || die "failed to resolve the latest release from GitHub"
 
-release_json="$(curl -fsSL "https://pypi.org/pypi/startlive/$version/json")" \
-  || die "startlive $version is not published on PyPI"
+repo_raw="https://raw.githubusercontent.com/Radekyspec/StartLive/$version"
+
+# Older tags predate `pyproject.toml` and are not installable as a package at
+# all, so refuse them early instead of failing later in the build.
+curl_gh "$repo_raw/requirements.txt" >/dev/null \
+  || die "startlive $version has no requirements.txt; it predates pyproject.toml and cannot be built from the tag"
 
 # Upstream pins PyQtDarkTheme-fork with `~=`. That package is not in nixpkgs,
 # so it is vendored next to this one and has to move in lockstep: a stale pin
 # fails the runtime dependency check at build time.
-fork_version="$(printf '%s' "$release_json" | python3 -c '
-import json, re, sys
-requires = json.load(sys.stdin)["info"].get("requires_dist") or []
-for req in requires:
-    match = re.match(r"PyQtDarkTheme-fork\s*~=\s*([0-9][^;,\s]*)", req, re.I)
+fork_version="$(curl_gh "$repo_raw/requirements.txt" | python3 -c '
+import re, sys
+for line in sys.stdin:
+    match = re.match(r"PyQtDarkTheme-fork\s*~=\s*([0-9][^;,\s]*)", line, re.I)
     if match:
         print(match.group(1))
         break
 ')"
+fork_version="${fork_version//[[:space:]]/}"
 [ -n "$fork_version" ] || die "startlive $version no longer requires PyQtDarkTheme-fork; the vendored package can be dropped"
 
 update_readme_versions() {
@@ -117,8 +133,10 @@ prefetch_hash() {
   printf '%s' "$hash"
 }
 
-src_url="https://files.pythonhosted.org/packages/source/s/startlive/startlive-${version}.tar.gz"
-src_hash="$(prefetch_hash "$src_url")"
+src_url="https://github.com/Radekyspec/StartLive/archive/refs/tags/${version}.tar.gz"
+src_hash="$(nix_cmd store prefetch-file --json --unpack "$src_url" \
+  | sed -n 's/.*"hash": *"\([^"]*\)".*/\1/p')"
+[ -n "$src_hash" ] || die "failed to prefetch $src_url"
 
 # PyPI serves the file under the distribution's original underscore name.
 fork_src_url="https://files.pythonhosted.org/packages/source/p/pyqtdarktheme_fork/pyqtdarktheme_fork-${fork_version}.tar.gz"

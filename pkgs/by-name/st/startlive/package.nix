@@ -1,6 +1,6 @@
 {
   lib,
-  fetchPypi,
+  fetchFromGitHub,
   icoutils,
   copyDesktopItems,
   makeDesktopItem,
@@ -14,15 +14,18 @@ in
 
 python3Packages.buildPythonApplication (finalAttrs: {
   pname = "startlive";
-  version = "1.2.1";
+  version = "1.3.0";
   pyproject = true;
 
-  # Built from the PyPI sdist: the GitHub tag `1.2.1` predates the
-  # `pyproject.toml` that upstream builds the distribution from, so that tag
-  # is not installable as a Python package at all.
-  src = fetchPypi {
-    inherit (finalAttrs) pname version;
-    hash = "sha256-yHtehLdkb+/TxvUA/2cw8by3Ej1//BvBsJvxRci4gAc=";
+  # Built from the release tag instead of PyPI: upstream's sdist is published
+  # by a workflow that waits for manual approval, so it can lag the release by
+  # days. Since 1.3.0 the tag itself carries `pyproject.toml`, a self-contained
+  # `startlive/` package and `requirements.txt`, so it is installable as-is.
+  src = fetchFromGitHub {
+    owner = "Radekyspec";
+    repo = "StartLive";
+    tag = finalAttrs.version;
+    hash = "sha256-ZZa/r9iNSCNudPqx6IKhdICqRPwHlbzKABXkd6pxfrg=";
   };
 
   build-system = [ python3Packages.setuptools ];
@@ -34,11 +37,23 @@ python3Packages.buildPythonApplication (finalAttrs: {
       qrcode
       requests
       pysocks # requests[socks]
+      brotli # Brotli>=1.2,<2
       obsws-python
       keyring # brings in secretstorage, the Secret Service backend
       darkdetect
       semver
       cryptography
+      # Upstream asks for protobuf>=5.29,<7; nixpkgs' default is 7.x, so use
+      # the 6.x attribute instead of dropping the upper bound.
+      protobuf6 # only imported when the PK window is opened
+    ])
+    # The `pk` extra. Only imported once the PK window is opened, so a missing
+    # dependency degrades that feature instead of breaking startup. Both pins
+    # match nixpkgs exactly.
+    ++ (with python3Packages; [
+      aiortc
+      aioice
+      certifi
     ])
     ++ [ pyqtdarktheme-fork ];
 
@@ -47,10 +62,11 @@ python3Packages.buildPythonApplication (finalAttrs: {
   # are unchanged. The `velopack` pin is skipped automatically, because its
   # environment marker excludes Linux.
   pythonRelaxDeps = [
-    "pillow"
-    "requests"
-    "keyring"
-    "cryptography"
+    "pyside6" # ~=6.12.0 vs nixpkgs 6.11.x
+    "pillow" # ~=12.2.0
+    "requests" # ~=2.32.5
+    "keyring" # ~=25.6.0
+    "cryptography" # ~=49.0.0
   ];
 
   nativeBuildInputs = [
@@ -68,15 +84,23 @@ python3Packages.buildPythonApplication (finalAttrs: {
 
   pythonImportsCheck = [
     "StartLive"
-    "src.core.constant"
+    "startlive.core.constant"
   ];
 
   postInstall = ''
-    # Upstream only ships Windows-format .ico files. The one used on
-    # non-Windows platforms holds a single 512x512 PNG payload, so extracting
-    # it is lossless.
-    icotool --extract --output=. resources/icon_left_macOS.ico
-    install -Dm644 icon_left_macOS_1_512x512x32.png \
+    # Upstream only ships Windows-format .ico files, each holding a single
+    # 512x512 PNG payload, so extracting one is lossless. Two variants exist and
+    # both are identical to what 1.3.0 ships.
+    #
+    # `icon_left.ico` is installed rather than `icon_left_macOS.ico` on purpose:
+    # the macOS variant is the same artwork on a rounded-square plate with a drop
+    # shadow, following Apple's icon template. StartLive picks that variant for
+    # every non-Windows platform (`StartLive.py:85-91`), but Linux desktops mask
+    # launcher icons themselves, so the plate would end up doubled. The plain
+    # variant is also what upstream uses for its tray icon on all platforms
+    # (`startlive/PySide/window/main_window.py`).
+    icotool --extract --output=. startlive/resources/icon_left.ico
+    install -Dm644 icon_left_1_512x512x32.png \
       "$out/share/icons/hicolor/512x512/apps/startlive.png"
 
     install -Dm644 LICENSE -t "$out/share/licenses/startlive"
