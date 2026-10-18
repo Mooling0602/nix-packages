@@ -45,6 +45,18 @@
 # counterpart of the darwin branches right below them. A compositor makes the
 # blur itself; the README documents the window rule that enables it.
 #
+# Three more patches on the same file (desktop-menu-locale.mjs) localize the
+# menus. The shell keeps an `en` and a `zh` message table and drives most of its
+# own menu items from it, but the standard Edit menu, the right-click menu and
+# the application menu's quit item were left to Electron -- which on Linux
+# renders role labels in English whatever the locale, so a Chinese desktop showed
+# 应用 next to an English "Edit". The patches spell those items out with labels
+# read from the very same table: an English session resolves to the `en` table
+# and shows "Edit"/"Undo"/..., never Chinese, and because the templates are built
+# inside the functions the shell re-runs on a locale change, switching language
+# re-labels the menus instead of leaving them stale. macOS is untouched -- AppKit
+# localizes its standard menu itself.
+#
 # The Linux desktop identity is not patched but reconciled (desktop-identity.mjs):
 # Electron derives the Wayland app id and X11 WM_CLASS from the application
 # manifest rather than from anything this package writes, so the .desktop file,
@@ -207,12 +219,14 @@
 , nodeRuntimeVersion
 
   # Build-time helpers, and the upstream sources they read: the shell-patch
-  # script (four Linux behaviours applied to the bundled main process), the window
-  # glass patch (two more, on the same file), the coverage guard scripts, the
-  # Host manifest whose dependencies must all be linked, and the source file
-  # declaring the lifecycle protocol generation.
+  # script (four Linux behaviours applied to the bundled main process), the
+  # window glass patch (two more, on the same file), the menu-locale patch
+  # (three more, also there), the coverage guard scripts, the Host manifest
+  # whose dependencies must all be linked, and the source file declaring the
+  # lifecycle protocol generation.
 , shellPatchScript
 , windowGlassScript
+, menuLocaleScript
 , coverageScript
 , descriptorScript
 , identityScript
@@ -367,6 +381,17 @@ stdenvNoCC.mkDerivation {
       # and XWayland windows unassociated as well.
       startupWMClass = desktopId;
       mimeTypes = [ "x-scheme-handler/dsh" ];
+      # The launcher blurb is the one user-visible string that goes through the
+      # XDG spec rather than the shell's own message table, so it is localized
+      # here too: a Chinese desktop shows Chinese in the launcher and an English
+      # one is unaffected, because a missing [locale] variant falls back to
+      # Comment=. Name= needs no variant -- the product name is not translated in
+      # the shell's own table either (zh.aboutProduct is "DeepSeek Harness").
+      # extraConfig is makeDesktopItem's escape hatch for keys it has no field
+      # for; the [zh_CN] suffix is the spec's locale syntax, spelled literally.
+      extraConfig = {
+        "Comment[zh_CN]" = "DeepSeek AI 开发的开源智能体框架";
+      };
     })
   ];
 
@@ -425,6 +450,14 @@ stdenvNoCC.mkDerivation {
     #     discipline: the window becomes transparent and the document it serves
     #     gets the rule that lets the compositor's blur show through.
     ${nodejs}/bin/node ${windowGlassScript} "$app/lib/main.js"
+
+    # 2c. The Linux menu locale, again on the same file: the Edit menu, the
+    #     right-click menu and the application menu's quit item take their
+    #     labels from the shell's own message table instead of the English
+    #     strings Electron renders for bare roles on Linux. Labels are read from
+    #     the same table the rest of the shell uses, so an English session still
+    #     shows English and a locale change re-labels the menu.
+    ${nodejs}/bin/node ${menuLocaleScript} "$app/lib/main.js"
 
     # 3. The bundled dsh runtime, inside the app directory (see note 2), plus the
     #    descriptor readDesktopRuntime() validates before the Host is started.

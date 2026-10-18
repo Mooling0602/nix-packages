@@ -27,8 +27,9 @@ nixpkgs' Electron, and writes the resource tree that
 `app.getAppPath()`/`process.resourcesPath` expect. No upstream source file is
 touched and nothing is recompiled: the only file rewritten is the bundled main
 process `resources/app/lib/main.js`, which receives the minimal Linux patches
-applied at install time: four shell behaviours from `desktop-shell-patch.mjs`
-and two window-glass patches from `desktop-window-glass.mjs` (see below).
+applied at install time: four shell behaviours from `desktop-shell-patch.mjs`,
+two window-glass patches from `desktop-window-glass.mjs` and three menu-locale
+patches from `desktop-menu-locale.mjs` (see below).
 
 The result behaves like the official desktop build: it starts a local dsh
 server, opens the desktop window, and reads the same skill, pnpm and
@@ -173,6 +174,45 @@ The window itself keeps `frame: true`: niri draws the decorations server side
 neither draws decorations nor needs drag regions of its own. The patch adds no
 frame option and no `-webkit-app-region` rule.
 
+### Menu localization
+
+The shell keeps its own `en` and `zh` message tables and drives most of its
+menu items from them, but three menu surfaces were left to Electron:
+`desktop-menu-locale.mjs` is what localizes them, and it does so without ever
+writing a Chinese string into the patch:
+
+- **Edit menu.** `platformMenus()` builds the Edit menu as `{ role: "editMenu" }`
+  off macOS. On Linux Electron renders a role's label in English whatever the
+  locale — the running window shows `Edit`, `Undo`, `Cut`, `Select All` on a
+  `zh-CN` desktop — so the Linux branch spells the items out, each keeping its
+  role and taking its `label` from `currentDesktopLocale().messages`. Keeping
+  the roles is what preserves behaviour and the default accelerators; only the
+  labels change.
+- **Right-click menu.** The context-menu template maps an item's `role` to
+  `messages[item.role]`, but the condition enabling that was `win32`. It now
+  covers every non-macOS platform, so `Copy`/`Paste`/`Select All` follow the
+  shell's locale on Linux too.
+- **Quit item.** The application menu's quit entry read `quitApplication` on
+  macOS and `exitApplication` on Windows, with an empty `{}` for Linux. Linux
+  now gets `quitApplication` — "退出 DeepSeek Harness", the same item macOS
+  shows — rather than the bare `quit` ("退出").
+
+An English session resolves to the `en` table and therefore shows
+`Edit`/`Undo`/`Copy`/`Quit DeepSeek Harness`; nothing is hardcoded to Chinese.
+The labels are read inside the functions that build the templates, and
+`platformMenus()` rebuilds its template on every call while
+`refreshApplicationMenu()` runs at startup, when the stored language preference
+loads and on the `localeChanged` IPC — so switching language re-labels the
+menus instead of leaving the previous language in place. macOS is left alone:
+AppKit localizes its standard menu itself, and the non-macOS branch is what the
+patches touch.
+
+The launcher entry is the one piece outside the shell's message table, so it is
+localized in the `.desktop` file instead: `Comment[zh_CN]` carries the Chinese
+blurb, and a desktop in any other language falls back to `Comment=`. `Name=`
+needs no variant because the product name is not translated in the shell's own
+table either.
+
 ### Desktop identity
 
 A window finds its icon in a task bar by name, and the name has four spellings
@@ -239,7 +279,7 @@ Both matter because the shipped reader (`readDesktopRuntime`, inlined into
 `lib/main.js`) type-checks them without comparing either to anything. A stale
 value would therefore be accepted silently, so the build refuses to guess.
 
-Eight things are checked at build time rather than discovered at launch:
+Nine things are checked at build time rather than discovered at launch:
 
 - `desktop-coverage.mjs` checks that every bare import in the packaged shell
   resolves inside `resources/app/node_modules`, and that every dependency in
@@ -252,6 +292,10 @@ Eight things are checked at build time rather than discovered at launch:
 - `desktop-window-glass.mjs` holds the two window-glass patches to the same
   rule: an anchor that no longer occurs exactly once fails the build by name,
   and the rewritten bundle is syntax-checked again afterwards.
+- `desktop-menu-locale.mjs` does the same for the three menu-locale patches.
+  Here the anchor check is also the guard that keeps an English session English:
+  a label is only ever read from the shell's message table, so an anchor that
+  moved fails the build rather than leaving a hardcoded string behind.
 - `desktop-identity.mjs` re-derives the desktop id from the shipped manifest
   and refuses a tree whose entry name, `StartupWMClass` or icons disagree with
   it, so a Wayland window cannot quietly stop matching its icon.
@@ -285,8 +329,9 @@ Some version numbers in this package are recorded evidence rather than pins,
 and the update script deliberately leaves them alone:
 
 - The bundle version each patch was last verified against, in the header of
-  `desktop-shell-patch.mjs` (currently `0.2.0-rc.2`) and of
-  `desktop-window-glass.mjs` (currently `0.2.1-alpha.4`). Those are evidence,
+  `desktop-shell-patch.mjs` (currently `0.2.1-rc.2`), of
+  `desktop-window-glass.mjs` (currently `0.2.1-alpha.4`) and of
+  `desktop-menu-locale.mjs` (currently `0.2.1-rc.2`). Those are evidence,
   not pins: the anchors are re-checked against every new tree by the build
   itself, so a stale number is honest — it says which bundle the patch was last
   inspected by eye on. Rewriting it automatically would claim a re-verification

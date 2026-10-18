@@ -46,7 +46,7 @@
  *      terminal signals through graceful shutdown and isolates the Host.
  *
  * Each patch replaces one exact anchor that was verified to occur exactly once
- * in the 0.2.0-rc.2 bundle. When an upstream bump moves the code, the count
+ * in the 0.2.1-rc.2 bundle. When an upstream bump moves the code, the count
  * check fails this build and names the patch, instead of shipping a silently
  * half-patched shell. The rewritten bundle is syntax-checked as an ES module
  * before the script exits.

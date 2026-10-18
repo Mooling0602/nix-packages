@@ -24,7 +24,8 @@ nixpkgs 的 Electron，写出 `app.getAppPath()`/`process.resourcesPath` 期望�
 资源目录树。上游源码文件完全不动、也不重新编译；唯一被改写的文件是打包后的
 主进程 `resources/app/lib/main.js`，安装阶段给它打上几处最小的 Linux 补丁：
 四处 shell 行为由 `desktop-shell-patch.mjs` 应用，两处窗口毛玻璃由
-`desktop-window-glass.mjs` 应用（见下文）。
+`desktop-window-glass.mjs` 应用，三处菜单本地化由 `desktop-menu-locale.mjs`
+应用（见下文）。
 
 产物行为与官方桌面版一致：启动本地 dsh 服务、打开桌面窗口，并从
 `resources/runtime/` 读取同一套 skill、pnpm 与 primary-runtime 负载。
@@ -137,6 +138,38 @@ window-rule {
 （`prefer-no-csd`、`clip-to-geometry`、`draw-border-with-background false`），
 客户端不需要也不应该绘制装饰或自备拖拽区域。
 
+### 菜单本地化
+
+外壳自带 `en` 与 `zh` 两套消息表，并把多数菜单项都建在
+`currentDesktopLocale().messages` 之上；但有三种菜单项交给了 Electron 自己填，
+在 Linux 上它们一律显示英文。`desktop-menu-locale.mjs` 负责把它们本地化，且
+补丁里从头到尾没有写死任何中文字符串：
+
+- **编辑菜单。** 非 macOS 平台用 `{ role: "editMenu" }` 让 Electron 填充
+  撤销/重做/剪切/复制/粘贴/删除/全选。Linux 上 Electron 无论系统语言是什么都
+  用英文渲染这些 role 的标签——`zh-CN` 桌面上的菜单就从「应用」旁边冒出
+  `Edit`/`Undo`/`Cut`/`Select All`。补丁把这一项逐条列出，**保留 role**、只把
+  `label` 换成消息表里的值；保留 role 正是为了不改变行为与默认快捷键，变的只有
+  文字。
+- **右键菜单。** 上下文菜单模板本来就会把 `role` 映射成
+  `messages[item.role]`，但开启该分支的条件写的是 `win32`。现在条件覆盖所有
+  非 macOS 平台，Linux 上的 `复制`/`粘贴`/`全选` 也随之跟随外壳语言。
+- **退出项。** 应用菜单的退出项在 macOS 上取 `quitApplication`、Windows 上取
+  `exitApplication`，Linux 则是空的 `{}`。现在 Linux 拿到 `quitApplication`
+  ——「退出 DeepSeek Harness」，与 macOS 的同一项一致，而不是裸露的 `quit`
+  （「退出」）。
+
+英文会话解析到 `en` 表，因此显示的必然是 `Edit`/`Undo`/`Copy`/
+`Quit DeepSeek Harness`，不存在显示中文的可能。标签在构建模板的函数内部读取，
+而 `platformMenus()` 每次调用都会重建模板、`refreshApplicationMenu()` 会在启动、
+已存语言偏好加载完成以及收到 `localeChanged` IPC 时运行——所以切换语言会重新
+贴标签，而不是把上一种语言留在原地。macOS 不做改动：原生菜单由 AppKit 自己
+本地化，补丁只动非 macOS 分支。
+
+启动器条目是唯一在消息表之外的部分，因此在 `.desktop` 文件里单独本地化：
+`Comment[zh_CN]` 提供中文简介，其它语言的桌面回落到 `Comment=`。`Name=` 无需
+变体——外壳自己的消息表里产品名同样不翻译。
+
 ### 桌面身份
 
 任务栏靠**名字**把窗口和它的图标对上，而这个名字有四种写法必须一致：
@@ -192,7 +225,7 @@ resources/icon.png                          窗口/任务栏图标
 `lib/main.js`）只做类型检查，**不与任何值比对**。陈旧的值会被静默接受，因此
 构建阶段拒绝猜测。
 
-构建期会做八项检查，而不是留到用户的启动阶段才发现问题：
+构建期会做九项检查，而不是留到用户的启动阶段才发现问题：
 
 - `desktop-coverage.mjs` 校验打包后外壳里的每一个裸导入都能在
   `resources/app/node_modules` 中解析，并校验上游
@@ -203,6 +236,9 @@ resources/icon.png                          窗口/任务栏图标
   做语法检查；上游升级若挪动了被打补丁的代码，构建会点名是哪一处补丁失败。
 - `desktop-window-glass.mjs` 让两处窗口毛玻璃补丁遵守同一套纪律：锚点不再恰好
   出现一次就点名失败，改写后的 bundle 会再被语法检查一次。
+- `desktop-menu-locale.mjs` 对三处菜单本地化补丁做同样的检查。这里的锚点校验
+  同时也是「英文用户不会看到中文」的保障：标签只从外壳自带的消息表里读取，
+  所以锚点一旦挪位就是构建失败，而不会留下一句话写死的字符串。
 - `desktop-identity.mjs` 从随包的应用清单重新推导桌面 id，条目文件名、
   `StartupWMClass` 或图标与之不符就拒绝该产物，Wayland 窗口不会无声地失去图标。
 - `desktop-inspector-worker.mjs` 从随包的运行时中读出实验性 Inspector 的 Worker
@@ -227,8 +263,9 @@ resources/icon.png                          窗口/任务栏图标
 本包中有一些版本号是**记录下来的证据**而非 pin，更新脚本故意不碰它们：
 
 - 每个补丁最后一次人工核对时所在的 bundle 版本，位于
-  `desktop-shell-patch.mjs`（当前为 `0.2.0-rc.2`）与
-  `desktop-window-glass.mjs`（当前为 `0.2.1-alpha.4`）的文件头。它们是**证据**
+  `desktop-shell-patch.mjs`（当前为 `0.2.1-rc.2`）、
+  `desktop-window-glass.mjs`（当前为 `0.2.1-alpha.4`）与
+  `desktop-menu-locale.mjs`（当前为 `0.2.1-rc.2`）的文件头。它们是**证据**
   而非 pin：锚点是否仍然有效，由构建针对每一棵新目录树重新检查，所以停在那儿
   的数字是诚实的——它说明补丁最后一次被肉眼审视是在哪个 bundle 上。自动改写它
   等于声称做过一次并未发生的复核。
