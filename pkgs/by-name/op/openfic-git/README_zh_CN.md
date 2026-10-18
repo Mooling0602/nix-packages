@@ -3,7 +3,7 @@
 > 中文（简体） · [English](README.md)
 
 从源码（上游 `main` 分支）构建的 OpenFic 桌面端，使用 nixpkgs 的 Electron，
-而非上游 electron-builder 预编译产物。跟踪上游 main 分支：`cc985187950f125702ab2c5bf1163ae7caf2e5f3`。
+而非上游 electron-builder 预编译产物。跟踪上游 main 分支：`1035d1e4a5b9a152350f71e6fcebe6e4d107b2ff`。
 
 姊妹包 `openfic` 用 bubblewrap FHS 环境包装上游发行 tarball；本包是纯源码
 构建，不提供 FHS 沙箱。**两者不要同时安装**——它们共用同一个 Electron 应用
