@@ -4,7 +4,7 @@
 
 [StartLive](https://github.com/Radekyspec/StartLive)，一款绕过 B 站官方「直播姬」开播的桌面程序：从 B 站接口取回推流地址，再通过 WebSocket 驱动本机（或另一台机器上）的 OBS Studio。
 
-当前版本：1.3.0。
+当前版本：1.4.0。
 
 ## 为什么用 GitHub tag
 

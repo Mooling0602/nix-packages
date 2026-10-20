@@ -14,7 +14,7 @@ in
 
 python3Packages.buildPythonApplication (finalAttrs: {
   pname = "startlive";
-  version = "1.3.0";
+  version = "1.4.0";
   pyproject = true;
 
   # Built from the release tag instead of PyPI: upstream's sdist is published
@@ -25,7 +25,7 @@ python3Packages.buildPythonApplication (finalAttrs: {
     owner = "Radekyspec";
     repo = "StartLive";
     tag = finalAttrs.version;
-    hash = "sha256-ZZa/r9iNSCNudPqx6IKhdICqRPwHlbzKABXkd6pxfrg=";
+    hash = "sha256-SIasMdxQVU7z0V/jUNEhfSEgli0zD9oL9ug6XAUKBag=";
   };
 
   build-system = [ python3Packages.setuptools ];

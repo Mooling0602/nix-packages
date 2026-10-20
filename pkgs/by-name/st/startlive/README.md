@@ -6,7 +6,7 @@
 Bilibili's official LiveHime client: it fetches the push URL from Bilibili's API and drives a
 local OBS Studio (or one on another machine) over its WebSocket interface.
 
-Current version: 1.3.0.
+Current version: 1.4.0.
 
 ## Why the GitHub tag
 

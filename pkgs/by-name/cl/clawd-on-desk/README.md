@@ -7,7 +7,7 @@ sessions in real time.
 
 ## Maintenance notes
 
-Current version: 1.3.0. When upstream releases a new version, update the
+Current version: 1.4.0. When upstream releases a new version, update the
 `version` and `hash` in `package.nix`. The Linux asset is named:
 
 ```sh
