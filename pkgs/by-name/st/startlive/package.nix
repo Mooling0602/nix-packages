@@ -66,6 +66,7 @@ python3Packages.buildPythonApplication (finalAttrs: {
     "pillow" # ~=12.2.0
     "requests" # ~=2.32.5
     "keyring" # ~=25.6.0
+    "semver" # ~=3.0.4 vs nixpkgs 3.1.0
     "cryptography" # ~=49.0.0
   ];
 
