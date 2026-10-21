@@ -7,8 +7,8 @@
 `org.freedesktop.impl.portal.InputCapture` 后端，让支持 input-capture portal
 的键鼠共享软件（Deskflow、Synergy 3、Input Leap）能在 niri 下充当 **server**，
 把这台机器的键盘、鼠标与剪贴板共享给另一台电脑。固定在上游 `main` 分支的
-`f363e34380b3f8bd9ffc9a167b7b58d3c208574b`，从源码构建并附带一个本地补丁
-（MIT）；详见[上游与许可](#上游与许可)。
+`49f82a63ca53b0137ad4eea08f4cd9d72642a22b`，从上游源码构建；详见
+[上游与许可](#上游与许可)。
 
 niri 暴露了 `Mutter.ScreenCast`、`Mutter.DisplayConfig` 与
 `Mutter.ServiceChannel`，但没有 `Mutter.InputCapture`，因此
@@ -122,36 +122,12 @@ Mod+Shift+Escape allow-inhibiting=false { spawn "niri-input-portal" "--release";
 MIT 许可，Copyright © 2026 Qingswe。
 
 上游既没有 tag 也没有二进制产物，因此这里不包含任何"重新打包官方构建"的
-成分——`package.nix` 拉取固定的那个提交并从源码构建。本地补丁是上游源码的
-衍生作品，沿用同一套 MIT 条款，因此 `meta.license` 保持
-`lib.licenses.mit`；上游的 `LICENSE` 本来就在这份源码里，版权声明原样保留，
-不额外复制到 `share/licenses`，与本仓库其它包一致。
+成分——`package.nix` 拉取固定的那个提交并从源码构建。上游的 `LICENSE`
+本来就在这份源码里，版权声明原样保留，不额外复制到 `share/licenses`，与本
+仓库其它包一致。
 
-该补丁是上游代码唯一的改动，打包的其余部分只改写硬编码的 `/usr` 路径。这一
-区分在阅读本文件时很重要：[打包补丁](#打包补丁) 所述的 region 上报，以及由此
-才可用的下边缘与右边缘，都属于本包的行为而非上游的行为。不要指望未打补丁的
-上游构建具备它们，也不要把它们当作 bug 报给上游。
-
-## 打包补丁
-
-`fix-eis-device-region.patch` 让后端在 EIS 设备上报告 `ei_device.region`。
-
-上游从不发送 region，而这是 libei 客户端唯一能用来确定"本机屏幕"尺寸的信息。
-缺失时 Deskflow 退回 1×1 的屏幕模型：每次捕获激活的光标位置都被压到 `(0, 0)`，
-于是只有**上边缘**能被离开——客户端配在下方或右侧时指针永远切不过去。
-Deskflow core 的 stderr 会直白印出这个症状：
-
-```
-WARNING: on switch, y (11) exceeds the bottom boundary (dy + height = 1)
-```
-
-region 必须**随设备一起**、在 `ei_device.done` 之前发出：libei 在构建 device 时读取它，
-之后不会再回看（协议里根本没有 region 事件），所以晚发的 region 等同于没发。因此补丁
-在 `ConnectToEIS` 时先取一次输出布局，把并集交给 EIS 会话，在创建每个 device 的回调里
-下发。
-
-上游补上 region 上报后即可删除此补丁；移除条件与复查方法记在 nixos-config 的
-`MAINTENANCE.md`。
+不施加任何源码补丁：打包部分只改写上游 unit 与 D-Bus 服务文件中硬编码的
+`/usr` 路径。
 
 ## 更新
 

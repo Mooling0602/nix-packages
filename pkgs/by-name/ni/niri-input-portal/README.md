@@ -9,8 +9,8 @@ This package builds
 sharing software that speaks the input-capture portal (Deskflow, Synergy 3,
 Input Leap) can act as a **server** under niri — sharing this machine's
 keyboard, mouse and clipboard with another computer. Pinned to upstream `main`
-at `f363e34380b3f8bd9ffc9a167b7b58d3c208574b` and built from source with one
-local patch (MIT); see [Upstream and licensing](#upstream-and-licensing).
+at `49f82a63ca53b0137ad4eea08f4cd9d72642a22b` and built from source; see
+[Upstream and licensing](#upstream-and-licensing).
 
 niri exposes `Mutter.ScreenCast`, `Mutter.DisplayConfig` and
 `Mutter.ServiceChannel`, but not `Mutter.InputCapture`, so
@@ -139,42 +139,12 @@ Copyright © 2026 Qingswe.
 
 Upstream publishes neither tags nor binaries, so nothing here repackages a
 project-provided artifact — `package.nix` fetches the pinned commit and builds
-it from source. The local patch is a derivative of that source and stays under
-the same MIT terms, so `meta.license` remains `lib.licenses.mit`; upstream's
-`LICENSE` file is part of that source and its copyright notice is left
-untouched. Nothing is copied to `share/licenses`, matching the rest of this
-repository.
+it from source. Upstream's `LICENSE` file is part of that source and its
+copyright notice is left untouched; nothing is copied to `share/licenses`,
+matching the rest of this repository.
 
-The patch is the only change to upstream's code; the rest of the packaging only
-rewrites hardcoded `/usr` paths. That distinction matters when reading this
-file: the region report described under [Package patches](#package-patches), and
-the working bottom and right edges that follow from it, are this package's
-behaviour rather than upstream's. Do not expect them from a plain upstream
-build, or report them upstream.
-
-## Package patches
-
-`fix-eis-device-region.patch` makes the backend report an `ei_device.region`.
-
-Upstream never sends one, and it is the only thing a libei client has to size
-"this screen" with. Without it Deskflow falls back to a 1×1 screen: the cursor
-position of every activation collapses onto `(0, 0)`, which leaves the **top
-edge** as the only one it can ever release the pointer towards. A client placed
-below or to the right of this machine is then unreachable. Deskflow core prints
-the symptom outright on stderr:
-
-```
-WARNING: on switch, y (11) exceeds the bottom boundary (dy + height = 1)
-```
-
-The region has to go out **with the device**, before `ei_device.done`: libei reads
-it while building the device and never looks again — the protocol has no region
-event at all — so a region sent later is the same as none. The patch therefore
-reads the output layout once on `ConnectToEIS`, hands the union to the EIS
-session, and reports it from the callback that builds each device.
-
-Drop the patch once upstream reports a region; the removal condition and the
-way to recheck it live in `MAINTENANCE.md` in nixos-config.
+No source patches are applied: the packaging only rewrites the hardcoded `/usr`
+paths in upstream's unit and D-Bus service files.
 
 ## Update
 
