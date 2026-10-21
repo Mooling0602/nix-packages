@@ -44,7 +44,7 @@
 }:
 
 let
-  version = "1.34.0";
+  version = "1.35.0";
 in
 stdenv.mkDerivation {
   pname = "qoder-ide";
@@ -55,7 +55,7 @@ stdenv.mkDerivation {
   # frozen at 1.24.2.
   src = fetchurl {
     url = "https://download.qoder.com/release/${version}/qoder-ide_amd64.deb";
-    hash = "sha256-PnOSubIeaTQJMewKryPR9HvkZR2xiq9j3CaEn2AHKrU=";
+    hash = "sha256-uv5SQ7w7T+4qN0d/GFNlUG2u7ZO05c7lLequt1RdCpw=";
   };
 
   nativeBuildInputs = [

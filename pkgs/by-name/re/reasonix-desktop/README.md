@@ -7,7 +7,7 @@ desktop app for DeepSeek-Reasonix.
 
 ## Maintenance notes
 
-Current version: 1.39.8. Linux assets are published under the
+Current version: 1.39.10. Linux assets are published under the
 `desktop-v<version>` tag, and the Linux asset is named:
 
 ```sh

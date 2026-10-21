@@ -6,7 +6,7 @@
 
 ## 维护说明
 
-当前版本：1.39.8。Linux 资产发布在 `desktop-v<version>` 标签下，资产名为：
+当前版本：1.39.10。Linux 资产发布在 `desktop-v<version>` 标签下，资产名为：
 
 ```sh
 Reasonix-linux-amd64.tar.gz
