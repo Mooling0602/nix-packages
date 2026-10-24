@@ -121,6 +121,18 @@ stdenv.mkDerivation (finalAttrs: {
     DSH_CLIENT_COMMIT_HASH = rev;
   };
 
+  # `@anthropic-ai/claude-agent-sdk-linux-x64` ships `claude` as a Bun
+  # standalone executable: an ELF stub with the JS payload appended after the
+  # section header table, which Bun locates through e_shoff/e_shnum. The fixup
+  # phase's `strip -S -p` rewrites that table, so Bun computes the wrong
+  # payload offset and silently falls back to the bare runtime: `--version`
+  # answers "1.4.1" instead of "2.1.263 (Claude Code)", and every spawn dies
+  # with `error: Script not found "stream-json"`. nixpkgs' claude-code package
+  # opts out of stripping for the same reason. This basename is unique in the
+  # tree, so excluding it leaves every other ELF stripped; the cost is only the
+  # ~4 KiB of debug sections this file carries.
+  stripExclude = [ "claude" ];
+
   buildPhase = ''
     runHook preBuild
 

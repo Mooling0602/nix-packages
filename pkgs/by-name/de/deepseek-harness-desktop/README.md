@@ -8,7 +8,7 @@
 repacked for Linux. Upstream ships installers for Windows and macOS only; this
 package produces the equivalent runtime tree for `x86_64-linux`.
 
-Current version: 0.2.1-rc.2 (follows [`deepseek-harness-git`](../deepseek-harness-git)).
+Current version: 0.2.1-rc.3 (follows [`deepseek-harness-git`](../deepseek-harness-git)).
 
 ## What this is
 
