@@ -120,6 +120,15 @@ let
     "@deepseek-ai/dsh-deepseek-account"
     "@deepseek-ai/dsh-home-paths"
     "@deepseek-ai/node-addon-system"
+    # The four below are devDependencies upstream, but the shipped shell imports
+    # them from lib/types/*.js: electron-builder inlines that directory, so
+    # upstream can leave them out of `dependencies` and still ship a working
+    # app. Here nothing inlines them, so they are runtime modules and belong in
+    # this list. desktop-coverage.mjs reports each one by name if it is missing.
+    "zod"
+    "@deepseek-ai/dsh-official-bundles"
+    "@deepseek-ai/dsh-plugin-manager"
+    "@deepseek-ai/dsh-util-file-drag"
   ];
 
   # Host direct dependencies, resolved by bare name at startup. Linked rather
@@ -134,6 +143,10 @@ let
     "dsh-home-paths"
     "dsh-host-webserver"
     "dsh-jobs"
+    # Upstream added this to apps/desktop-host's dependencies. The Host loads it
+    # by bare name, so without a link here the lookup fails at startup; the
+    # coverage guard checks that link.
+    "dsh-plugin-manager"
     "dsh-schedule"
     "dsh-skill-office"
     "dsh-tool-workspace-dependencies"

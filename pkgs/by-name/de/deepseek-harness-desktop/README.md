@@ -8,7 +8,7 @@
 repacked for Linux. Upstream ships installers for Windows and macOS only; this
 package produces the equivalent runtime tree for `x86_64-linux`.
 
-Current version: 0.2.1-rc.3 (follows [`deepseek-harness-git`](../deepseek-harness-git)).
+Current version: 0.2.2-alpha.2 (follows [`deepseek-harness-git`](../deepseek-harness-git)).
 
 ## What this is
 
@@ -86,48 +86,73 @@ through:
   Electron offers no vibrancy or `backgroundMaterial` on Linux, and without
   `transparent` it hands the compositor an opaque surface that no page styling
   can reveal.
-- The document the bundle serves from its own `serveWebDocument()` gets one
+- The document the bundle serves from its own `serveWebDocument()` gets an
   injected style sheet holding the Linux counterpart of the rules the packaged
-  Web UI ships for darwin. Five surfaces have to step aside before the backdrop
-  is visible: the `html` and `body` background, the frame element (replaced by a
-  72% tint of its own `--dsw-alias-bg-base`, which keeps text legible over the
-  blurred wallpaper), the sidebar column together with the
-  `--dsw-specific-sidebar-fill` token its inner surface consumes, the
-  conversation root, and the composer seat. Missing any one of them is enough to
-  hide the blur, since a single opaque layer covers the rest. Content keeps the
-  backgrounds it sets for itself, so cards and panels stay legible and the glass
-  shows around the interface.
+  Web UI ships for darwin, plus the small mask script described below. Four
+  surfaces have to step aside before the backdrop is visible: the `html` and
+  `body` background, the frame element (replaced by a 72% tint of its own
+  `--dsw-alias-bg-base`, which keeps text legible over the blurred wallpaper),
+  the sidebar column together with the `--dsw-specific-sidebar-fill` token its
+  inner surface consumes, and the conversation root. Missing any one of them is
+  enough to hide the blur, since a single opaque layer covers the rest. Content
+  keeps the backgrounds it sets for itself, so cards and panels stay legible and
+  the glass shows around the interface.
 
-  The composer seat is the one surface that is cleared rather than retinted, and
-  it is worth a note. Upstream hides the transcript scrolling under the input
-  card by fading to solid `--dsw-alias-bg-base` over a fixed 36px band; on darwin
-  that fill is invisible because the column beneath paints the same colour, but
-  over a cleared column it becomes an opaque frame around the card. Replacing it
-  with a translucent scrim only trades a black band for a grey one, and a masked
-  `backdrop-filter` is worse: on a transparent window Chromium samples the
-  window's own transparency as opaque black, so the band renders as a smeared
-  black halo. Clearing the fill leaves the seat transparent, which is the only
-  treatment that matches the cleared column around it. What the fill used to mask
-  stays masked by the card itself, which is wider than the transcript column
-  (`--dsh-composer-card-max-width` is `--dsh-chat-content-width` plus the side
-  clearance) and paints its own opaque `--dsw-specific-input-major`.
+  Upstream hides the content scrolling under its pinned overlays with opaque
+  `--dsw-alias-bg-base` fills: the composer seat's 36px fade to solid, the
+  plugin page bar's scroll-linked `::before`, the market page's sticky head, and
+  the sticky disclosure header inside an expanded think row. Over a cleared
+  column those fills become the opaque strips that break the glass. The obvious
+  replacement — a `backdrop-filter` on each overlay — does not work in this
+  window: Chromium only applies backdrop-filter where the backdrop it samples is
+  opaque, and a transparent Electron window keeps the page's background
+  transparent, so the filter is a no-op and the text underneath stays crisp.
+  That was measured against a real window over the live wallpaper: the same
+  overlay blurs instantly as soon as the content behind it paints an opaque
+  background, and none of a translucent window `backgroundColor`, a translucent
+  CSS root or `isolation` brings the filter back. The treatment therefore works
+  on the content rather than on the glass.
+
+  All four overlays fade their content instead of filling. The injected script
+  measures each overlay's edge in viewport space on every scroll frame and
+  writes the two gradient stops in the masked element's own coordinates, so the
+  band stays pinned under the overlay while the content moves. The mask image
+  covers the element's whole box, so there is no image edge: only the band fades
+  and everything beyond it stays untouched. The two plugin page headers fade
+  28px of content: the market head's content boxes are masked below the head's
+  own bottom edge, and the plugin page bar's around the bar's compact height
+  (its head clips to `--plugin-header-paint-height` while the list scrolls, so
+  the boundary sits there rather than at the bar box's full height). The
+  expanded think row's disclosure header does the same below its bottom edge
+  once it sticks, but over a longer 48px band — the header itself is only 24px
+  tall, so a band that ends at its edge would squeeze the transition into the
+  header and leave it barely visible. The composer seat masks the transcript's
+  message column, which is a sibling of the seat, against the seat's top edge:
+  prose fades out over the 48px above the composer and is hidden underneath it,
+  which is what the seat's own solid gradient used to do. That boundary follows
+  the composer's height rather than the scroll, so a ResizeObserver re-measures
+  it when the input card grows. No node is reparented, so each component's own
+  scrolling layout keeps working. Under `prefers-reduced-transparency: reduce`
+  the masks are dropped and the overlays take upstream's solid fill back, so
+  header text never sits on the scrolling content.
 
   The selectors carry every rule on specificity alone, with no `!important`
   anywhere, and avoid the build's hashed class names: a hardcoded hash would not
   survive an upstream bump. On the running window the only pixels left fully
   opaque belong to content cards and to the input card itself.
-  `prefers-reduced-transparency: reduce` restores an opaque frame and an opaque
-  seat, the same fallback upstream ships.
+  `prefers-reduced-transparency: reduce` restores an opaque frame and an opaque seat,
+  the same fallback upstream ships.
 
 Nothing in the packaged Web dist is rewritten. Those files are upstream build
 output whose names carry content hashes, so patching them would be the more
 fragile of the two options, and the injection point (the shell's own document
 handler, which already injects its boot script into the same `<head>`) is
-reached wherever the frontend is served from. The injected rule is inert
-elsewhere by construction: only the application window's preload calls
-`markDocumentPlatform()`, so the renderer pages served from `dsh-app://shell/*`
-(welcome, update dialog, mandatory update) never match the selector and keep
-their own opaque background.
+reached wherever the frontend is served from. What it injects is the style sheet
+plus a small mask script (the two plugin page headers); both are inert elsewhere
+by construction, since the script guards on `data-platform=linux` and only the
+application window's preload calls `markDocumentPlatform()`. The renderer pages
+served from `dsh-app://shell/*` (welcome, update dialog, mandatory update) never
+match and keep their own opaque background.
 
 The blur itself belongs to the compositor, so it needs a window rule there, and
 niri leaves `blur` off unless a rule turns it on. Whether anything is left to do
@@ -330,7 +355,7 @@ and the update script deliberately leaves them alone:
 
 - The bundle version each patch was last verified against, in the header of
   `desktop-shell-patch.mjs` (currently `0.2.1-rc.2`), of
-  `desktop-window-glass.mjs` (currently `0.2.1-alpha.4`) and of
+  `desktop-window-glass.mjs` (currently `0.2.2-alpha.2`) and of
   `desktop-menu-locale.mjs` (currently `0.2.1-rc.2`). Those are evidence,
   not pins: the anchors are re-checked against every new tree by the build
   itself, so a stale number is honest — it says which bundle the patch was last
