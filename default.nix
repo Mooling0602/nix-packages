@@ -13,6 +13,7 @@
   pebble-mail = pkgs.callPackage ./pkgs/by-name/pe/pebble-mail/package.nix { };
   openfic = pkgs.callPackage ./pkgs/by-name/op/openfic/package.nix { };
   openfic-git = pkgs.callPackage ./pkgs/by-name/op/openfic-git/package.nix { };
+  elyterminal = pkgs.callPackage ./pkgs/by-name/el/elyterminal/package.nix { };
   niri-input-portal = pkgs.callPackage ./pkgs/by-name/ni/niri-input-portal/package.nix { };
   startlive = pkgs.callPackage ./pkgs/by-name/st/startlive/package.nix { };
   xiaomi-mimo-desktop = pkgs.callPackage ./pkgs/by-name/xi/xiaomi-mimo-desktop/package.nix { };
