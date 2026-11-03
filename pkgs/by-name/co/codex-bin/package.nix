@@ -2,7 +2,6 @@
   lib,
   stdenvNoCC,
   fetchurl,
-  makeWrapper,
   bubblewrap,
 }:
 
@@ -21,8 +20,6 @@ stdenvNoCC.mkDerivation {
 
   sourceRoot = "package/vendor/${target}";
 
-  nativeBuildInputs = [ makeWrapper ];
-
   installPhase = ''
     runHook preInstall
 
@@ -32,12 +29,14 @@ stdenvNoCC.mkDerivation {
     cp -r codex-path/. "$out/codex-path/"
     cp codex-package.json "$out/"
 
-    runHook postInstall
-  '';
+    # Expose bubblewrap through codex-path (which the CLI prepends to PATH at
+    # runtime) instead of wrapping "$out/bin/codex". Codex verifies that the
+    # entrypoint bytes of its package match the running executable, so a shell
+    # wrapper breaks `codex app-server daemon` and `codex update --from-cli`.
+    # Symlinks are rejected by that package validation, hence the copy.
+    cp ${lib.getExe bubblewrap} "$out/codex-path/bwrap"
 
-  postFixup = ''
-    wrapProgram "$out/bin/codex" \
-      --prefix PATH : ${lib.makeBinPath [ bubblewrap ]}
+    runHook postInstall
   '';
 
   meta = {
