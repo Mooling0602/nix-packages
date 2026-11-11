@@ -45,7 +45,7 @@
 }:
 
 let
-  version = "0.5.6";
+  version = "0.5.7";
 in
 stdenv.mkDerivation {
   pname = "qoder";
@@ -56,7 +56,7 @@ stdenv.mkDerivation {
   # IDE lives in the separate `qoder-ide` package.
   src = fetchurl {
     url = "https://download.qoder.com/qoder-app/releases/${version}/Qoder-linux-amd64.deb";
-    hash = "sha256-AFjV/5e3HB6Xk1WV/csHYTvSDp17p/Zyye/HtWb8QNQ=";
+    hash = "sha256-y/uOjgHIUkazQhCibjPfKds+wX0BsMXjifD4V0ZUJCE=";
   };
 
   nativeBuildInputs = [
