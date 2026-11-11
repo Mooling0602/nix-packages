@@ -8,7 +8,7 @@
 repacked for Linux. Upstream ships installers for Windows and macOS only; this
 package produces the equivalent runtime tree for `x86_64-linux`.
 
-Current version: 0.2.2-rc.1 (follows [`deepseek-harness-git`](../deepseek-harness-git)).
+Current version: 0.2.2-rc.2 (follows [`deepseek-harness-git`](../deepseek-harness-git)).
 
 ## What this is
 
@@ -354,9 +354,9 @@ Some version numbers in this package are recorded evidence rather than pins,
 and the update script deliberately leaves them alone:
 
 - The bundle version each patch was last verified against, in the header of
-  `desktop-shell-patch.mjs` (currently `0.2.1-rc.2`), of
-  `desktop-window-glass.mjs` (currently `0.2.2-alpha.2`) and of
-  `desktop-menu-locale.mjs` (currently `0.2.1-rc.2`). Those are evidence,
+  `desktop-shell-patch.mjs` (currently `0.2.2-rc.2`), of
+  `desktop-window-glass.mjs` (currently `0.2.2-rc.2`) and of
+  `desktop-menu-locale.mjs` (currently `0.2.2-rc.2`). Those are evidence,
   not pins: the anchors are re-checked against every new tree by the build
   itself, so a stale number is honest — it says which bundle the patch was last
   inspected by eye on. Rewriting it automatically would claim a re-verification

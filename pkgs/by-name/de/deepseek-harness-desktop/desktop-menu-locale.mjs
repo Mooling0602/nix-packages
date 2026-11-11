@@ -39,8 +39,14 @@
  * today -- `platformMenus()` for the Edit menu, the `context-menu` handler for
  * the popup -- rather than hoisted to module scope, for that reason.
  *
+ * The macOS branch of `platformMenus()` builds its Edit menu from
+ * `macEditMenu(messages)` rather than a bare `{ role: "editMenu" }` as of
+ * 0.2.2-rc.2, because AppKit's own labels only cover so much; that branch is
+ * left untouched, and the anchor below spells it out so the replacement keeps
+ * it verbatim.
+ *
  * Each patch replaces one exact anchor verified to occur exactly once in the
- * 0.2.1-rc.2 bundle. When an upstream bump localizes the menus itself, or
+ * 0.2.2-rc.2 bundle. When an upstream bump localizes the menus itself, or
  * moves the code, the count check fails this build and names the patch instead
  * of shipping a silently half-localized shell. The rewritten bundle is
  * syntax-checked as an ES module before the script exits.
@@ -79,7 +85,7 @@ const patches = [
     anchor:
       "\tconst platformMenus = () => darwin ? [\n"
       + "\t\tshortcuts.fileMenu(currentDesktopLocale().messages),\n"
-      + "\t\t{ role: \"editMenu\" },\n"
+      + "\t\tmacEditMenu(currentDesktopLocale().messages),\n"
       + "\t\t{ role: \"windowMenu\" }\n"
       + "\t] : [{ role: \"editMenu\" }];",
     replacement:
@@ -90,7 +96,7 @@ const patches = [
       + "\t// when the locale changes instead of leaving the previous language in place.\n"
       + "\tconst platformMenus = () => darwin ? [\n"
       + "\t\tshortcuts.fileMenu(currentDesktopLocale().messages),\n"
-      + "\t\t{ role: \"editMenu\" },\n"
+      + "\t\tmacEditMenu(currentDesktopLocale().messages),\n"
       + "\t\t{ role: \"windowMenu\" }\n"
       + "\t] : process.platform === \"linux\" ? [{\n"
       + "\t\tlabel: currentDesktopLocale().messages.edit,\n"

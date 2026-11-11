@@ -104,7 +104,7 @@
  * they scope the window-drag regions, the menu backing element and the title
  * bar adjustments, and none of that changes here.
  *
- * Anchors are exact substrings checked to occur exactly once in the 0.2.2-alpha.2
+ * Anchors are exact substrings checked to occur exactly once in the 0.2.2-rc.2
  * bundle. An upstream bump that moves one fails the build naming the patch,
  * instead of shipping a half-glazed window.
  */

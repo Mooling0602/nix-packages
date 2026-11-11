@@ -8,7 +8,7 @@
 的 Electron 外壳，重新打包以适配 Linux。上游只发布 Windows 与 macOS 安装包，
 本包为 `x86_64-linux` 产出等价的运行时目录树。
 
-当前版本：0.2.2-rc.1（跟随 [`deepseek-harness-git`](../deepseek-harness-git)）。
+当前版本：0.2.2-rc.2（跟随 [`deepseek-harness-git`](../deepseek-harness-git)）。
 
 ## 这是什么
 
@@ -278,9 +278,9 @@ resources/icon.png                          窗口/任务栏图标
 本包中有一些版本号是**记录下来的证据**而非 pin，更新脚本故意不碰它们：
 
 - 每个补丁最后一次人工核对时所在的 bundle 版本，位于
-  `desktop-shell-patch.mjs`（当前为 `0.2.1-rc.2`）、
-  `desktop-window-glass.mjs`（当前为 `0.2.2-alpha.2`）与
-  `desktop-menu-locale.mjs`（当前为 `0.2.1-rc.2`）的文件头。它们是**证据**
+  `desktop-shell-patch.mjs`（当前为 `0.2.2-rc.2`）、
+  `desktop-window-glass.mjs`（当前为 `0.2.2-rc.2`）与
+  `desktop-menu-locale.mjs`（当前为 `0.2.2-rc.2`）的文件头。它们是**证据**
   而非 pin：锚点是否仍然有效，由构建针对每一棵新目录树重新检查，所以停在那儿
   的数字是诚实的——它说明补丁最后一次被肉眼审视是在哪个 bundle 上。自动改写它
   等于声称做过一次并未发生的复核。
