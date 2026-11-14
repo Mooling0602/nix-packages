@@ -17,11 +17,11 @@
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "elyterminal";
-  version = "0.2.1";
+  version = "0.2.4";
 
   src = fetchurl {
     url = "https://github.com/ELY-Open-Source/ELYTerminal/releases/download/v${finalAttrs.version}/elyterminal_${finalAttrs.version}_amd64.deb";
-    hash = "sha256-FfeRU7KZdLFo5Y8/FcEKN3eRAgGObcYBR+8VklmgzxQ=";
+    hash = "sha256-6B52t1swewKmb7zF4gQCi38hvcJkNpGK6pV9npE8QlI=";
   };
 
   nativeBuildInputs = [ autoPatchelfHook makeWrapper zstd ];
